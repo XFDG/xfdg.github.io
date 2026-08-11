@@ -1,0 +1,51 @@
+name: Harden portfolio evidence redaction
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/patch-refresh-redaction.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Add server and endpoint redaction before regeneration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/refresh-public-evidence.yml')
+          text = path.read_text(encoding='utf-8')
+          needle = "              text = text.replace('/path/to/', '[redacted-path]/')"
+          replacement = """              text = text.replace('/path/to/', '[redacted-path]/')
+              for sensitive in (
+                  'yzhao04-cpu-shanghai:32196',
+                  'yzhao04-gpu-shanghai:32198',
+                  'yzhao04',
+                  '32196',
+                  '32198',
+                  '/volume/yzhao04',
+                  '/shared/storage/',
+              ):
+                  text = text.replace(sensitive, '[redacted]')"""
+          if replacement not in text:
+              if needle not in text:
+                  raise SystemExit('redaction insertion point not found')
+              text = text.replace(needle, replacement, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          rm -f .github/workflows/patch-refresh-redaction.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Harden public evidence redaction'
+          git push origin HEAD:main
