@@ -1,175 +1,610 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="MoE Router Replay 训推路由一致性项目：实验设计、指标与脱敏结果。">
-  <meta name="theme-color" content="#07090d">
-  <link rel="canonical" href="https://xfdg.github.io/projects/router-replay.html">
-  <title>MoE Router Replay — Haoran Feng</title>
-  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../styles.css">
-  <script src="../script.js" defer></script>
-</head>
-<body data-page="projects">
-  <header class="site-header">
-    <div class="shell header-inner">
-      <a class="brand" href="../index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
-      <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
-      <nav class="site-nav" aria-label="主导航">
-        <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <section class="detail-hero">
-      <div class="shell">
-        <div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>MoE Router Replay</span></div>
-        <span class="eyebrow reveal">Flagship Project · RL Infra</span>
-        <h1 class="reveal"><span class="gradient-text">MoE Router Replay：建立训推路由一致性的正确性—性能—效果闭环。</span></h1>
-        <p class="detail-lead reveal">在 MoE 模型的 RL Post-training 链路中，rollout 与 training 可能因为执行路径、数值精度或实现差异选择不同 experts。这个项目不只验证 R3 Replay 是否让路由一致，还同时评估概率漂移、CUDA Graph、系统性能和训练稳定性。</p>
-        <div class="detail-meta-grid reveal">
-          <div class="detail-meta"><span>Role</span><strong>Experiment & Infra Engineering</strong></div>
-          <div class="detail-meta"><span>Environment</span><strong>8× NVIDIA H200 · TP=2</strong></div>
-          <div class="detail-meta"><span>Stack</span><strong>veRL · Megatron · vLLM</strong></div>
-          <div class="detail-meta"><span>Status</span><strong>脱敏案例 · 持续整理</strong></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section compact section-line">
-      <div class="shell detail-layout">
-        <article class="detail-content">
-          <section id="problem">
-            <span class="section-kicker">01 / Problem</span>
-            <h2>问题不是“能不能 Replay”，而是“Replay 的路径是否真的与采样一致”。</h2>
-            <p>在 rollout 阶段，MoE Router 会为每个 token、每一层选择 top-k experts；训练阶段需要重新前向并计算 logprob、KL 和梯度。如果两侧 router 的 top-k 结果不同，训练使用的 token—expert 路径就偏离了采样时真实发生的路径，可能污染概率对齐与策略更新。</p>
-            <p>造成差异的来源可能同时存在：浮点数值误差、不同算子实现、执行顺序、CUDA Graph / compiled path、mask 处理、token 索引对齐或 replay 数据的通信与布局。</p>
-            <div class="callout"><strong>核心任务</strong><p>搭建 Baseline、R2 Record 与 R3 Replay 的可比实验，并将“路由是否一致”“概率是否更接近”“系统是否更快”“训练是否稳定”拆成独立但关联的指标层。</p></div>
-          </section>
-
-          <section id="architecture">
-            <span class="section-kicker">02 / System</span>
-            <h2>端到端数据流</h2>
-            <div class="architecture" aria-label="Router Replay 数据流">
-              <div class="arch-node"><strong>Rollout</strong><span>vLLM / SGLang</span></div>
-              <div class="arch-node"><strong>Route Record</strong><span>token-layer-topk</span></div>
-              <div class="arch-node"><strong>Transport</strong><span>mask / compact / sync</span></div>
-              <div class="arch-node"><strong>Training Replay</strong><span>Megatron-LM</span></div>
-              <div class="arch-node"><strong>Metrics</strong><span>route · logprob · reward</span></div>
-            </div>
-            <p>Rollout 侧采集 routed experts，训练侧按照 response mask 对指定 token/layer 进行 replay。为了避免“统计看起来一致但索引错位”，必须同时记录有效 token-layer 数量，并让 overlap/mismatch 的分母与 mask 语义一致。</p>
-          </section>
-
-          <section id="hypotheses">
-            <span class="section-kicker">03 / Hypotheses</span>
-            <h2>四个可被证伪的假设</h2>
-            <ol class="number-list">
-              <li><strong>H1 · 正确性：</strong>开启 R3 Replay 后，被 replay 的有效 token/layer 上 <span class="mono">route_mismatch_rate</span> 应接近 0，<span class="mono">topk_overlap</span> 应接近 1。</li>
-              <li><strong>H2 · 概率对齐：</strong>R3 相比 Baseline / R2 应显著降低 logprob drift；R2 只记录不重放，不应自动改善 drift。</li>
-              <li><strong>H3 · 性能：</strong>Replay 不应引入不可接受的记录、通信、拷贝或训练侧执行开销；CUDA Graph 的收益与限制需要单独消融。</li>
-              <li><strong>H4 · 训练效果：</strong>短程正确性成立后，长程 reward、KL、clipfrac 与 grad norm 至少不能明显退化。</li>
-            </ol>
-          </section>
-
-          <section id="experiment">
-            <span class="section-kicker">04 / Experiment</span>
-            <h2>对照实验与指标分层</h2>
-            <div class="data-table-wrap">
-              <table class="data-table">
-                <thead><tr><th>Path</th><th>Route Behavior</th><th>CUDA Graph</th><th>Purpose</th></tr></thead>
-                <tbody>
-                  <tr><td>Baseline</td><td>不记录、不 Replay</td><td>FULL / Eager</td><td>建立原始训推差异基线</td></tr>
-                  <tr><td>R2 Record</td><td>Rollout 记录，训练侧不重放</td><td>FULL / Eager</td><td>分离“记录开销”和“Replay 收益”</td></tr>
-                  <tr><td>R3 Replay</td><td>Rollout 记录，训练侧重放</td><td>FULL / Eager</td><td>验证路由正确性、drift 与训练效果</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3>指标层级</h3>
-            <div class="metric-grid">
-              <div class="metric-card"><strong>Correctness</strong><span>top-k overlap · mismatch · valid count</span><small>FIRST GATE</small></div>
-              <div class="metric-card"><strong>Probability</strong><span>f_tau_2 · KL · k3_kl · abs diff</span><small>ALIGNMENT</small></div>
-              <div class="metric-card"><strong>Performance</strong><span>step time · per-token latency · stage timing</span><small>COST</small></div>
-              <div class="metric-card"><strong>Training</strong><span>reward · val_core · clipfrac · grad norm</span><small>QUALITY</small></div>
-              <div class="metric-card"><strong>Reliability</strong><span>hang · timeout · metric_error</span><small>STABILITY</small></div>
-              <div class="metric-card"><strong>Resource</strong><span>GPU memory · communication · graph capture</span><small>SYSTEM</small></div>
-            </div>
-            <p>实验固定模型、数据、batch、采样参数、并行配置、随机种子、镜像、代码 commit 与 warm-up 区间。短程 5/25/50-step 用于快速验证，长程实验用于判断 reward 与稳定性。</p>
-          </section>
-
-          <section id="results">
-            <span class="section-kicker">05 / Results</span>
-            <h2>当前可公开的脱敏结果</h2>
-            <div class="metric-grid">
-              <div class="metric-card"><strong>1.0</strong><span>多组实验 top-k overlap</span><small>R3 REPLAY</small></div>
-              <div class="metric-card"><strong>0.0</strong><span>多组实验 route mismatch</span><small>VALID TOKENS</small></div>
-              <div class="metric-card"><strong>30×–46×</strong><span>R3 相比 Baseline 的 f_tau_2 改善</span><small>ANONYMIZED</small></div>
-              <div class="metric-card"><strong>77×</strong><span>15-step 独立对照的低漂移结果</span><small>ANONYMIZED</small></div>
-              <div class="metric-card"><strong>0</strong><span>eager 规避后的 hang / metric_error</span><small>5 / 25 / 50 STEP</small></div>
-              <div class="metric-card"><strong>≈2.4M–2.7M</strong><span>单步有效 token-layer 统计量</span><small>SANITY CHECK</small></div>
-            </div>
-            <div class="callout warning"><strong>结果边界</strong><p>上述数字用于说明正确性和概率对齐，不代表最终训练收益已经完全证明。长程 reward、性能成本和更多模型/配置的泛化验证仍应作为独立结论补齐。</p></div>
-          </section>
-
-          <section id="debugging">
-            <span class="section-kicker">06 / Debugging</span>
-            <h2>最重要的失败路径：CUDA Graph / compiled sampler 超时。</h2>
-            <p>在预验证阶段，采样路径出现 <span class="mono">sample_tokens timeout</span>。直接把问题归因于 Router Replay 会混淆变量，因此先切到 eager 模式，确认 Baseline / R2 / R3 在相同条件下能够稳定完成，再回到 CUDA Graph 路径定位 capture、动态输入与 sampler 实现的交互。</p>
-            <pre class="code-block">Observed:
-  compiled sampler / CUDA Graph path → sample_tokens timeout
-
-Isolation:
-  force eager execution
-  keep model, data, TP, sampling and metrics unchanged
-
-Result:
-  baseline / R2 / R3 → 0 hang, metric_error = 0
-
-Engineering decision:
-  correctness first; re-enable graph only after replay path is verified</pre>
-          </section>
-
-          <section id="contribution">
-            <span class="section-kicker">07 / Contribution</span>
-            <h2>我的个人贡献</h2>
-            <ul>
-              <li>打通并维护 Baseline、R2 与 R3 的多阶段对照流程，处理运行配置、异常定位与实验一致性。</li>
-              <li>设计训推路由一致性诊断闭环，统一 routed experts 的采集、response mask、指标分母与上报口径。</li>
-              <li>扩展 logprob drift 指标，对齐不同路径的 f_tau_2、KL、k3_kl 与 abs diff。</li>
-              <li>设计短程快速验证与长程训练实验，并将正确性、性能、质量和可靠性分层分析。</li>
-              <li>把结果整理为可用于简历、面试和技术文章的脱敏证据，而不是只保留在日志与面板中。</li>
-            </ul>
-          </section>
-
-          <section id="next">
-            <span class="section-kicker">08 / Next</span>
-            <h2>下一步验证</h2>
-            <ol class="number-list">
-              <li>补齐 R2 / R3 的长程 reward、KL、grad norm 与 validation 对照，确认概率对齐能否转化为训练收益。</li>
-              <li>拆分 Record、Transport、Replay 与 Metric 的时间成本，建立 per-token / per-stage 性能账本。</li>
-              <li>重新开启 CUDA Graph，最小化 capture 变量并确认 sampler timeout 根因。</li>
-              <li>扩展到不同 MoE 模型、top-k、并行配置和硬件环境，验证结论的可迁移性。</li>
-            </ol>
-          </section>
-        </article>
-
-        <aside class="detail-sidebar">
-          <div class="sidebar-card">
-            <h3>Contents</h3>
-            <nav class="toc"><a href="#problem">问题背景</a><a href="#architecture">系统数据流</a><a href="#hypotheses">核心假设</a><a href="#experiment">实验设计</a><a href="#results">脱敏结果</a><a href="#debugging">失败路径</a><a href="#contribution">个人贡献</a><a href="#next">下一步</a></nav>
-          </div>
-          <div class="sidebar-card">
-            <h3>Key Facts</h3>
-            <ul class="sidebar-list"><li><span>GPU</span><strong>8×H200</strong></li><li><span>Parallel</span><strong>TP=2</strong></li><li><span>Paths</span><strong>Baseline / R2 / R3</strong></li><li><span>Main unit</span><strong>token-layer-topk</strong></li></ul>
-          </div>
-          <a class="button primary" href="../projects.html">返回全部项目</a>
-        </aside>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="../resume.html">Resume</a></div></div></footer>
-</body>
-</html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="在 veRL + Megatron-LM + vLLM 的 MoE-RL 链路中打通 rollout route 采集、训练侧 observe/replay、response-mask 对齐和统一指标；以 A/B/C 对照区分自然路由差异、记录开销与 Replay 效果。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/router-replay.html"><title>R3 Router Replay：MoE-RL 训推路由一致性与概率漂移闭环 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<body data-page="projects" class="evidence-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../index.html" aria-label="返回首页"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+    <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="detail-hero"><div class="shell"><div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>R3 Router Replay：MoE-RL 训推路由一致性与概率漂移闭环</span></div><span class="eyebrow reveal">Flagship · RL Infra · MoE</span><h1 class="reveal"><span class="gradient-text">R3 Router Replay：MoE-RL 训推路由一致性与概率漂移闭环</span></h1><p class="detail-lead reveal">在 veRL + Megatron-LM + vLLM 的 MoE-RL 链路中打通 rollout route 采集、训练侧 observe/replay、response-mask 对齐和统一指标；以 A/B/C 对照区分自然路由差异、记录开销与 Replay 效果。</p><div class="detail-meta-grid reveal"><div class="detail-meta"><span>Role</span><strong>System Implementation &amp; Experiment Design</strong></div><div class="detail-meta"><span>Environment</span><strong>8× H200 Main Study · 32-card Smoke</strong></div><div class="detail-meta"><span>Stack</span><strong>veRL · Megatron-LM · vLLM · PyTorch Distributed</strong></div><div class="detail-meta"><span>Status</span><strong>公开聚合证据 · Eager 主口径</strong></div></div></div></section>
+  <section class="section compact section-line"><div class="shell detail-layout"><article class="detail-content">
+    <section><span class="section-kicker">Evidence Snapshot / 证据快照</span><h2>用可复核的数字描述贡献，也明确数字不能证明什么。</h2><div class="metric-grid"><div class="metric-card"><strong>17%–19% → 0</strong><span>route mismatch</span><small>20-step observe</small></div><div class="metric-card"><strong>36×–145×</strong><span>f_tau_2 下降</span><small>R3 vs baseline</small></div><div class="metric-card"><strong>4×–7×</strong><span>KL 下降</span><small>概率漂移</small></div><div class="metric-card"><strong>18</strong><span>CPU contract tests</span><small>shape / mask / error</small></div></div></section>
+    <section><span class="section-kicker">System / 系统链路</span><h2>从问题到验证的工程闭环</h2><div class="architecture"><div class="arch-node"><strong>vLLM Rollout</strong><span>record [T,L,K] route</span></div><div class="arch-node"><strong>Data Protocol</strong><span>response + route + mask</span></div><div class="arch-node"><strong>Megatron Trainer</strong><span>observe natural route</span></div><div class="arch-node"><strong>R3 Replay</strong><span>inject rollout expert ids</span></div><div class="arch-node"><strong>Metrics</strong><span>mismatch / KL / stability</span></div></div></section>
+    <figure class="project-figure"><img src="../assets/projects/router-replay/r3-engineering-progress.png" alt="Router Replay 工程实现与 A/B/C 验证进度" loading="lazy"><figcaption>Router Replay 工程实现与 A/B/C 验证进度 · 公开脱敏图</figcaption></figure>
+    <section class="source-banner"><div><span class="section-kicker">Public Sources / 公开证据</span><h2>以下正文来自 ICS6201 <code>me</code> 分支的脱敏文档。</h2><p>内部仓库、节点、镜像、模型路径、运行标识、凭据与原始日志均不在页面中。公开数字保留原文定义和适用边界。</p></div><div class="button-row"><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/R3_%E5%B7%A5%E7%A8%8B%E5%AE%9E%E7%8E%B0%E5%85%AC%E5%BC%80%E7%89%88.md" target="_blank" rel="noopener noreferrer">工程实现公开版 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/R3_%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C%E5%85%AC%E5%BC%80%E7%89%88.md" target="_blank" rel="noopener noreferrer">实验结果公开版 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/R3_CUDA_Graph%E4%B8%8E%E9%9B%86%E7%BE%A4%E6%8E%92%E9%9A%9C%E5%85%AC%E5%BC%80%E7%89%88.md" target="_blank" rel="noopener noreferrer">CUDA Graph 排障 ↗</a></div></section>
+    <section class="evidence-section"><h2>工程实现与数据契约</h2>
+<blockquote>
+<p>时间：2026-06<br/>
+技术栈：veRL、Megatron-LM、vLLM、PyTorch Distributed、MoE、8xH200<br/>
+结论：完成 rollout route 采集、训练侧 observe/replay、response-mask 对齐和统一指标链路，并用 CPU 单测与 GPU A/B/C 实验分别验证数据契约和端到端语义。</p>
+</blockquote>
+<h4>1. 问题定义</h4>
+<p>MoE 强化学习同时包含 rollout/inference engine 和 training engine。即使两边权重相同，算子实现、并行方式和数值误差也可能让 router 的 top-k 边界发生翻转，使同一 token 在两侧进入不同 expert。离散路由变化会继续影响 hidden state 和 logprob，形成训推漂移。</p>
+<p>Router Replay 的工程目标不是冻结 router，也不是复制 rollout logits，而是：</p>
+<ol>
+<li>rollout 时记录每个有效 token、每个 MoE layer 实际选中的 top-k expert id；</li>
+<li>training 时保留自然路由用于观测，按实验模式决定是否使用 rollout route；</li>
+<li>只在 response token 上统计 route 和 logprob 指标；</li>
+<li>用同一批数据做 baseline、observe 和 replay 对照。</li>
+</ol>
+<h4>2. 系统数据流</h4>
+<pre><code class="language-text">prompt / response
+      |
+      v
+vLLM rollout
+  +-- selected token logprobs
+  +-- routed_experts [token, moe_layer, top_k]
+      |
+      v
+rollout batch / data protocol
+      |
+      v
+Megatron trainer
+  +-- train_routed_experts: 训练侧自然路由
+  +-- replay target: rollout 路由
+  +-- response mask: 只保留回答 token
+      |
+      v
+route mismatch + logprob drift + stability metrics
+</code></pre>
+<p><code>routed_experts</code> 的逻辑形状是 <code>[T, L, K]</code>：</p>
+<ul>
+<li>T：当前样本展平后的 token 数；</li>
+<li>L：MoE 层数；</li>
+<li>K：每个 token 选择的 expert 数；</li>
+<li>值域：<code>[0, num_experts)</code> 的整数 expert id。</li>
+</ul>
+<p>20-step 主实验每步约有 241 万至 269 万个有效 token-layer 观测点，因此 mismatch 不是少量 token 的抽样结果。</p>
+<h4>3. A/B/C 语义</h4>
+<table>
+<thead>
+<tr>
+<th>组别</th>
+<th style="text-align: right;">rollout route 采集</th>
+<th style="text-align: right;">训练自然 route 记录</th>
+<th style="text-align: right;">训练是否 replay</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A baseline-observe</td>
+<td style="text-align: right;">是</td>
+<td style="text-align: right;">是</td>
+<td style="text-align: right;">否</td>
+<td>测量自然训推 route divergence</td>
+</tr>
+<tr>
+<td>B R2-observe</td>
+<td style="text-align: right;">是</td>
+<td style="text-align: right;">是</td>
+<td style="text-align: right;">否</td>
+<td>验证“只记录、不回放”不会虚构收益</td>
+</tr>
+<tr>
+<td>C R3-replay</td>
+<td style="text-align: right;">是</td>
+<td style="text-align: right;">是</td>
+<td style="text-align: right;">是</td>
+<td>验证 replay 对 route 与 logprob 的影响</td>
+</tr>
+</tbody>
+</table>
+<p>早期实现曾把 replay target 直接作为“实际 route”参与自比较，这只能验证数据链路自一致，不能证明自然 route mismatch 消失。主结论采用 observe 口径：A/B 保存 <code>train_routed_experts</code>，C 才替换执行路由。</p>
+<h4>4. 工程实现要点</h4>
+<h4>4.1 Rollout 侧采集</h4>
+<ul>
+<li>在模型执行期间捕获每层 router top-k expert id。</li>
+<li>保证采集顺序与 rollout batch 中 token 顺序一致。</li>
+<li>将 route tensor 与响应、old logprob 等数据一起传入 trainer。</li>
+<li>对无 route、shape 不匹配和层数不一致设置显式错误指标，不静默吞掉异常。</li>
+</ul>
+<h4>4.2 Trainer 侧 observe/replay</h4>
+<ul>
+<li>自然路由始终可保存为 <code>train_routed_experts</code>，防止 replay 覆盖真实观测值。</li>
+<li>replay 模式将 rollout expert id 注入 MoE routing path；observe 模式只比较，不改变执行。</li>
+<li>统计前应用 response mask，避免 prompt token 数量掩盖回答阶段的漂移。</li>
+<li>token、layer、top-k 三个维度统一后再计算 mismatch，避免仅比较集合导致的口径变化。</li>
+</ul>
+<h4>4.3 指标闭环</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>趋势</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>route_mismatch_rate</code></td>
+<td>rollout 与训练 route 不一致的 token-layer-topk 比例</td>
+<td>越低越好</td>
+</tr>
+<tr>
+<td><code>topk_overlap</code></td>
+<td>两侧 top-k expert 集合重合率</td>
+<td>越高越好</td>
+</tr>
+<tr>
+<td><code>f_tau_2</code></td>
+<td>训练与推理概率比超过 2 倍的 token 比例</td>
+<td>越低越好</td>
+</tr>
+<tr>
+<td><code>kl</code></td>
+<td>两侧 token 概率分布的 KL 距离</td>
+<td>越低越好</td>
+</tr>
+<tr>
+<td><code>k3_kl</code></td>
+<td>数值更稳定的 KL 估计口径</td>
+<td>越低越好</td>
+</tr>
+<tr>
+<td><code>selected_logprob_abs_diff_mean</code></td>
+<td>选中 token 的 logprob 绝对差均值</td>
+<td>越低越好</td>
+</tr>
+<tr>
+<td><code>metric_error</code></td>
+<td>指标 shape、mask 或数据协议异常计数</td>
+<td>应为 0</td>
+</tr>
+</tbody>
+</table>
+<p>核心指标近似定义为：</p>
+<pre><code class="language-text">f_tau_2 = mean(response_token where max(p_train / p_rollout,
+                                         p_rollout / p_train) &gt; 2)
+</code></pre>
+<h4>4.4 可观测性与失败显式化</h4>
+<ul>
+<li>console 与实验面板使用同名指标，避免人工二次换算。</li>
+<li>同时记录有效 token-layer 数，防止空 mask 时得到“完美的 0”。</li>
+<li>route tensor 缺失、shape 变化或异常值会进入 <code>metric_error</code>，不把异常样本当作正常 0。</li>
+<li>稳定性同时记录 hang、engine error 和指标错误，避免只看最终 loss。</li>
+</ul>
+<h4>5. 验证策略</h4>
+<p>验证分成三层：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>方法</th>
+<th>验收点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据契约</td>
+<td>CPU 构造 tensor 与 mask</td>
+<td>shape、层顺序、top-k、空 mask、错误分支</td>
+</tr>
+<tr>
+<td>最小链路</td>
+<td>短 step GPU smoke</td>
+<td>route 能跨 rollout/trainer 传递，指标非空</td>
+</tr>
+<tr>
+<td>效果对照</td>
+<td>同模型同数据 A/B/C</td>
+<td>A/B 测到自然 divergence，C replay 后为 0</td>
+</tr>
+</tbody>
+</table>
+<p>整理时可追溯的最小观测改动覆盖 5 个文件，并有 18 个 CPU 测试通过。GPU 验证则以 5-step、20-step 和多节点 smoke 分层推进。CPU 测试证明指标实现，GPU 对照证明系统语义，两者不能相互替代。</p>
+<h4>6. 关键工程问题</h4>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因或判断</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>非 Megatron 参数被透传</td>
+<td>配置边界缺少过滤</td>
+<td>在进入训练框架前拆分参数命名空间</td>
+</tr>
+<tr>
+<td>vLLM 开发版本号被依赖检查拒绝</td>
+<td>版本字符串不满足上层约束</td>
+<td>统一构建元数据与运行时版本口径</td>
+</tr>
+<tr>
+<td>route 指标看似恒为 0</td>
+<td>replay target 被当作实际 route 自比较</td>
+<td>保存训练自然 route，升级为 observe 口径</td>
+</tr>
+<tr>
+<td>rollout <code>sample_tokens</code> timeout</td>
+<td>下游报错掩盖 CUDA Graph 内部 hang</td>
+<td>通过控制变量缩小到 TP=2 + FULL graph 条件</td>
+</tr>
+</tbody>
+</table>
+<h4>7. 贡献状态与表述边界</h4>
+<ul>
+<li>这项工作形成了可运行实现、指标设计、测试和实验报告。</li>
+<li>整理时相关目标分支已存在等价可观测能力，因此不能写成“个人 PR 已合并”。</li>
+<li>可以写“实现并验证 Router Replay 与观测链路”，不写“将功能合入上游”。</li>
+<li>当前证据支持 route/logprob 一致性改善，不支持直接声称 reward、准确率或收敛速度提高。</li>
+</ul>
+<h4>8. 可用于简历的一句话</h4>
+<p>在 8xH200 的 veRL + Megatron + vLLM MoE-RL 链路中实现 rollout route 采集、训练侧 Router Replay 和 response-mask 指标闭环，以 baseline/R2/R3 observe 对照验证自然 route mismatch 从约 17%-19% 降至 0。</p>
+<p>实验数据和限制见 <a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/R3_%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C%E5%85%AC%E5%BC%80%E7%89%88.md" rel="noopener noreferrer" target="_blank">R3 实验结果公开版</a>，CUDA Graph 排障见 <a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/R3_CUDA_Graph%E4%B8%8E%E9%9B%86%E7%BE%A4%E6%8E%92%E9%9A%9C%E5%85%AC%E5%BC%80%E7%89%88.md" rel="noopener noreferrer" target="_blank">R3 CUDA Graph 与集群排障公开版</a>。</p></section><section class="evidence-section"><h2>A/B/C 结果与适用边界</h2>
+<blockquote>
+<p>主实验：Qwen3-30B-A3B BF16、GSM8K、8xH200、20 steps<br/>
+结论：R3 在 observe 口径下把 route mismatch 从约 17%-19% 降至 0，并显著降低多项 logprob drift 指标；当前结论不等同于最终任务效果提升。</p>
+</blockquote>
+<h4>1. 实验问题</h4>
+<p>实验分别回答三个问题：</p>
+<ol>
+<li>rollout 与 training 的自然 route 是否真的不同；</li>
+<li>Router Replay 是否在真实 observe 口径下消除 route divergence；</li>
+<li>route 对齐是否伴随 logprob drift 下降，且链路能稳定运行。</li>
+</ol>
+<p>控制变量为模型、数据、精度、训练参数和硬件；A/B/C 的主要差异仅为 route 记录与 replay 行为。指标只统计 response token。</p>
+<h4>2. 20-step 主结果</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">step</th>
+<th style="text-align: right;">A mismatch</th>
+<th style="text-align: right;">B mismatch</th>
+<th style="text-align: right;">C mismatch</th>
+<th style="text-align: right;">A f_tau_2</th>
+<th style="text-align: right;">B f_tau_2</th>
+<th style="text-align: right;">C f_tau_2</th>
+<th style="text-align: right;">C vs A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.190</td>
+<td style="text-align: right;">0.188</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">3.38e-3</td>
+<td style="text-align: right;">2.99e-3</td>
+<td style="text-align: right;">3.94e-5</td>
+<td style="text-align: right;">约 86x 下降</td>
+</tr>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0.178</td>
+<td style="text-align: right;">0.177</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">2.50e-3</td>
+<td style="text-align: right;">2.67e-3</td>
+<td style="text-align: right;">5.83e-5</td>
+<td style="text-align: right;">约 43x 下降</td>
+</tr>
+<tr>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">0.181</td>
+<td style="text-align: right;">0.181</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">2.14e-3</td>
+<td style="text-align: right;">2.54e-3</td>
+<td style="text-align: right;">3.70e-5</td>
+<td style="text-align: right;">约 58x 下降</td>
+</tr>
+<tr>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">0.189</td>
+<td style="text-align: right;">0.189</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">3.39e-3</td>
+<td style="text-align: right;">3.61e-3</td>
+<td style="text-align: right;">2.34e-5</td>
+<td style="text-align: right;">约 145x 下降</td>
+</tr>
+<tr>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.172</td>
+<td style="text-align: right;">0.174</td>
+<td style="text-align: right;">0.000</td>
+<td style="text-align: right;">3.20e-3</td>
+<td style="text-align: right;">2.90e-3</td>
+<td style="text-align: right;">8.94e-5</td>
+<td style="text-align: right;">约 36x 下降</td>
+</tr>
+</tbody>
+</table>
+<p>聚合观察：</p>
+<ul>
+<li>A/B 的自然 route mismatch 全程约 17%-19%，说明“只观测、不 replay”不会自动得到 0。</li>
+<li>C 的 mismatch 全程为 0，说明 replay route 在训练执行侧生效。</li>
+<li>C 的 f_tau_2 相比 A/B 低约 36x-145x。</li>
+<li>C 的 KL 相比 A 低约 4x-7x。</li>
+<li>C 的 selected logprob absolute difference 相比 A 低约 2.2x-2.5x。</li>
+<li>20 step 内 0 hang、0 EngineDeadError、0 metric_error。</li>
+</ul>
+<h4>3. 补充实验</h4>
+<h4>3.1 早期 5/25/50-step 对照</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">step</th>
+<th style="text-align: right;">baseline f_tau_2</th>
+<th style="text-align: right;">R2 f_tau_2</th>
+<th style="text-align: right;">R3 f_tau_2</th>
+<th style="text-align: right;">R3 vs baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">2.72e-3</td>
+<td style="text-align: right;">2.65e-3</td>
+<td style="text-align: right;">5.86e-5</td>
+<td style="text-align: right;">约 45x 下降</td>
+</tr>
+<tr>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">2.47e-3</td>
+<td style="text-align: right;">2.52e-3</td>
+<td style="text-align: right;">8.34e-5</td>
+<td style="text-align: right;">约 30x 下降</td>
+</tr>
+<tr>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">4.23e-3</td>
+<td style="text-align: right;">2.83e-3</td>
+<td style="text-align: right;">1.30e-4</td>
+<td style="text-align: right;">约 32x 下降</td>
+</tr>
+</tbody>
+</table>
+<p>这组结果采用较早的 route 指标口径，因此只作为 logprob 结论的补充，不作为自然 route mismatch 的主要证据。配套数据见 <a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/../weekly_report/r3_weekly_0616_0618_data.csv" rel="noopener noreferrer" target="_blank">周报 CSV</a>。</p>
+<h4>3.2 独立 15-step 对照</h4>
+<p>baseline 与 R3 的 f_tau_2 分别为 3.53e-3 和 4.58e-5，约 77x 下降。该结果说明主趋势能够在另一轮短实验中复现，但仍不替代 20-step observe 主口径。</p>
+<h4>3.3 跨模型补充</h4>
+<p>另一开源 MoE 模型的 25-step 对照中观察到约 6.6x 的 f_tau_2 下降。由于当前公开材料未保留完整逐步数据，只把它作为可迁移性的弱证据，不作为简历主数字。</p>
+<h4>4. 多节点 32 卡 smoke</h4>
+<p>4 节点 x 8 卡、TP=2、eager 口径下，R2 与 R3 均完成 5 steps：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th style="text-align: right;">R2</th>
+<th style="text-align: right;">R3</th>
+<th>判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>route mismatch</td>
+<td style="text-align: right;">0.2579</td>
+<td style="text-align: right;">0</td>
+<td>replay 在多节点口径下生效</td>
+</tr>
+<tr>
+<td>KL</td>
+<td style="text-align: right;">0.00388</td>
+<td style="text-align: right;">0.00089</td>
+<td>R3 约低 4.4x</td>
+</tr>
+<tr>
+<td>throughput</td>
+<td style="text-align: right;">113.90</td>
+<td style="text-align: right;">104.68</td>
+<td>R3 当前约有 8.1% 开销</td>
+</tr>
+</tbody>
+</table>
+<p>这是一组工程 smoke，不是完整收敛实验。它能证明多节点数据链路和短程稳定性，也暴露了 replay 的吞吐代价；不能据此外推长跑 reward。</p>
+<h4>5. 结果解释</h4>
+<h4>能证明</h4>
+<ul>
+<li>rollout 与 training 的自然 MoE route 在当前链路中存在稳定差异。</li>
+<li>Router Replay 能让训练执行 route 与 rollout route 对齐。</li>
+<li>route 对齐与 f_tau_2、KL、selected-logprob drift 的下降同时出现。</li>
+<li>eager 口径下当前 20-step 链路稳定。</li>
+</ul>
+<h4>不能证明</h4>
+<ul>
+<li>不能证明 reward、GSM8K 准确率或最终收敛质量已经提高。</li>
+<li>不能证明所有 MoE 模型、精度、并行配置都有相同比例收益。</li>
+<li>不能把 32 卡 5-step smoke 写成多节点长跑完成。</li>
+<li>不能忽略约 8.1% 的短程吞吐开销。</li>
+</ul>
+<h4>6. 简历数字建议</h4>
+<p>主简历只保留三组数字即可：</p>
+<ol>
+<li>自然 route mismatch：约 17%-19% -&gt; 0；</li>
+<li>f_tau_2：约 36x-145x 下降；</li>
+<li>KL：约 4x-7x 下降，20 step 内 0 hang / 0 engine error / 0 metric error。</li>
+</ol>
+<p>面试展开时再补充 32 卡 smoke 的 8.1% 吞吐开销，体现对性能代价和结论边界的完整理解。</p>
+<h4>7. 证据索引</h4>
+<ul>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/../weekly_report/6%E6%9C%8811%E6%97%A5-6%E6%9C%8818%E6%97%A5%E5%91%A8%E6%8A%A5.md" rel="noopener noreferrer" target="_blank">6 月 11 日至 18 日周报</a></li>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/../weekly_report/6%E6%9C%8822%E6%97%A5-6%E6%9C%8826%E6%97%A5%20%E5%91%A8%E6%8A%A5.md" rel="noopener noreferrer" target="_blank">6 月 22 日至 26 日周报</a></li>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/assets/r3_engineering_progress_abc_validation_2026-06-15.png" rel="noopener noreferrer" target="_blank">R3 工程进度图</a></li>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/assets/r3_weekly_status_2026-06-15.png" rel="noopener noreferrer" target="_blank">R3 周状态图</a></li>
+</ul></section><section class="evidence-section"><h2>稳定性与故障定位</h2>
+<blockquote>
+<p>2026-07-15 更新：本文第 1～9 节保留 6 月阶段性排障过程；后续两卡最小复现已经把根因闭环到 FlashInfer MNNVL fused allreduce + RMSNorm 的 FTZ/sentinel 误判，并完成 PR #3304 回移与 0.6.12 回归。最新结论见 <a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/../flashinfer/README.md" rel="noopener noreferrer" target="_blank">FlashInfer TP2 CUDA Graph Hang 根因与修复</a>。</p>
+<p>当前结论：<code>sample_tokens timed out</code> 是下游表象，最小触发组合为 TP=2 + VLLM_COMPILE + FULL CUDA Graph + fused allreduce/RMSNorm；旧实现的浮点 sentinel 判断会受 FTZ 影响而永久轮询，精确 bit-pattern 修复后两卡 graph replay 通过，完整大规模 RL 任务仍待最终验收。</p>
+</blockquote>
+<h4>1. 故障现象</h4>
+<p>R3 rollout 在多卡配置下偶发或稳定卡住，外层最终表现为：</p>
+<ul>
+<li>sample_tokens timed out；</li>
+<li>engine process 无返回或抛出 engine-dead 类错误；</li>
+<li>sampler、D2H copy、async output queue 或消息队列等待超时。</li>
+</ul>
+<p>这些位置都在执行链后段。仅依据超时栈把问题归因到 sampler 会误判，因此排查目标是找到最后一个确定完成的 GPU 阶段和最小触发条件。</p>
+<h4>2. 控制变量矩阵</h4>
+<table>
+<thead>
+<tr>
+<th>变量</th>
+<th>对照</th>
+<th>观察</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tensor Parallel</td>
+<td>TP=1 vs TP=2</td>
+<td>TP=2 才稳定触发</td>
+</tr>
+<tr>
+<td>CUDA Graph</td>
+<td>eager vs FULL</td>
+<td>eager 通过，FULL 触发</td>
+</tr>
+<tr>
+<td>Compile</td>
+<td>off vs on</td>
+<td>compile + FULL 组合风险最高</td>
+</tr>
+<tr>
+<td>fused AllReduce + RMSNorm</td>
+<td>on vs guarded off</td>
+<td>关闭后首次通过完整 step</td>
+</tr>
+<tr>
+<td>sampler / D2H</td>
+<td>保持不变</td>
+<td>仍只是等待点，非首因证据</td>
+</tr>
+</tbody>
+</table>
+<p>最小复现可以概括为：</p>
+<pre><code class="language-text">TP=2
++ vLLM compile
++ FULL CUDA Graph capture/replay
++ fused AllReduce + RMSNorm candidate
+=&gt; rollout hang
+</code></pre>
+<h4>3. 排查过程</h4>
+<ol>
+<li>先用 eager 证明模型、数据、权重同步和基本 TP 通信可运行。</li>
+<li>固定 batch 与随机性，只切换 graph mode，确认问题与 FULL graph 相关。</li>
+<li>对比 TP=1/TP=2，缩小到需要跨 rank 协同的执行路径。</li>
+<li>使用 Nsys 标记 rollout、collective、sampler 和 D2H 时间线，排除后段“报错即根因”的解释。</li>
+<li>对 fused pass 增加 guard，单独关闭 AllReduce + RMSNorm 融合；完整 training step 首次通过。</li>
+<li>规划 standalone reproducer 与 NCU，准备验证 rank 对称性、barrier/scoreboard stall 和 memory traffic。</li>
+</ol>
+<h4>4. 当前结论等级</h4>
+<table>
+<thead>
+<tr>
+<th>结论</th>
+<th>置信度</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sampler 不是首因</td>
+<td>高</td>
+<td>eager 和部分 graph 对照能完成，sampler 只在上游未完成后等待</td>
+</tr>
+<tr>
+<td>问题依赖 TP=2 + FULL graph</td>
+<td>高</td>
+<td>控制变量可重复区分 pass/fail</td>
+</tr>
+<tr>
+<td>fused AllReduce + RMSNorm 路径不可靠</td>
+<td>中高</td>
+<td>guard-off 首次完整通过，仍需多轮回归</td>
+</tr>
+<tr>
+<td>已定位到具体 kernel 指令或同步点</td>
+<td>不成立</td>
+<td>目标 NCU 和指令级证据未完成</td>
+</tr>
+</tbody>
+</table>
+<p>因此对外准确说法是“把 hang 收敛到 fused collective + normalization 路径，并给出 eager/guard 规避方案”，而不是“修复了 vLLM CUDA Graph kernel bug”。</p>
+<h4>5. 稳定规避与验收</h4>
+<p>当前默认稳定方案是启用 eager。候选 guard 若要升级成正式方案，至少需要：</p>
+<ul>
+<li>相同输入连续多次通过；</li>
+<li>FULL、PIECEWISE 和组合 graph mode 的最小回归；</li>
+<li>R3 5-step 以上端到端回归；</li>
+<li>性能差异与正确性指标同时记录；</li>
+<li>两个 TP rank 的行为对称性验证。</li>
+</ul>
+<p>一次通过只提高嫌疑路径的置信度，不能作为修复完成的依据。</p>
+<h4>6. Checkpoint 与恢复</h4>
+<p>多节点实验将“训练状态”和“可观测产物”分开管理：</p>
+<table>
+<thead>
+<tr>
+<th>产物</th>
+<th>用途</th>
+<th style="text-align: right;">能否恢复训练</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>model/optimizer/scheduler checkpoint</td>
+<td>恢复训练状态</td>
+<td style="text-align: right;">是</td>
+</tr>
+<tr>
+<td>console / tracking metrics</td>
+<td>观察趋势</td>
+<td style="text-align: right;">否</td>
+</tr>
+<tr>
+<td>rollout dump</td>
+<td>调试输入输出</td>
+<td style="text-align: right;">否</td>
+</tr>
+<tr>
+<td>Nsys / NCU profile</td>
+<td>定位性能和 hang</td>
+<td style="text-align: right;">否</td>
+</tr>
+</tbody>
+</table>
+<p>推荐恢复流程：</p>
+<ol>
+<li>长跑前做 2-step 保存与恢复 smoke；</li>
+<li>验证 checkpoint 完整性和 step 编号；</li>
+<li>中断前确认最新 checkpoint 已落盘；</li>
+<li>恢复时复用同一实验配置，只改变 resume 参数；</li>
+<li>对比恢复前后 loss、global step、optimizer state 和 route 指标连续性。</li>
+</ol>
+<p>自动恢复只应选择同一实验实例下的有效 checkpoint，不能扫描并误用其他实验目录。</p>
+<h4>7. 集群观测结果</h4>
+<p>对两组集群运行记录的对比表明：</p>
+<ul>
+<li>eager/no-resume 组可以完成 5-step smoke；</li>
+<li>fullgraph + checkpoint 组合出现过 Ray memory pressure 和 OOM；</li>
+<li>profiling 能解释资源和时间线，但本身不会修复稳定性问题；</li>
+<li>graph mode、checkpoint 峰值和对象存储/日志开销需要分别控制，避免同时引入多个变量。</li>
+</ul>
+<h4>8. Profiling 产物状态</h4>
+<p>已生成并验收一份覆盖完整 rollout 的 fixed-path Nsys；早期 fused-on trace 因 guard 实际生效，不能作为 fused kernel 证据。standalone reproducer 已准备，目标 NCU 尚未形成，因此报告保留“待验证”状态。早期 Nsight 状态图与最终周报不一致，未纳入公开归档。</p>
+<ul>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/assets/vllm_tp2_rootcause_matrix_2026-06-25.csv" rel="noopener noreferrer" target="_blank">根因矩阵 CSV</a></li>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/r3/assets/generate_vllm_tp2_rootcause_matrix_2026-06-25.py" rel="noopener noreferrer" target="_blank">根因矩阵绘图脚本</a></li>
+</ul>
+<h4>9. 面试展开框架</h4>
+<ul>
+<li><strong>现象</strong>：外层 sampler timeout，但错误点不等于首因。</li>
+<li><strong>方法</strong>：用 TP、graph、compile、fusion 四个维度做控制变量矩阵。</li>
+<li><strong>结果</strong>：先收敛到 TP=2 + FULL graph 下 fused AllReduce + RMSNorm，再用两卡 graph reproducer 和 SASS 对照定位 FTZ/sentinel 误判。</li>
+<li><strong>处置</strong>：回移精确 bit-pattern 修复并验证新版 FlashInfer；完整大规模 RL 任务仍保留最终验收边界。</li>
+<li><strong>工程化</strong>：补 checkpoint smoke、恢复 SOP 和 profile 产物验收，降低多节点实验重跑成本。</li>
+</ul></section>
+    <section class="callout warning"><strong>结论边界</strong><p>可证明路由执行路径和多项 logprob 指标显著对齐；不能据此声称 reward、准确率或最终收敛质量已经提高。32 卡结果是 5-step smoke，并存在约 8.1% 的短程吞吐开销。</p></section>
+  </article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Evidence Standard</h3><ul class="sidebar-list"><li><span>Problem</span><strong>可复现定义</strong></li><li><span>Method</span><strong>控制变量 / Oracle</strong></li><li><span>Result</span><strong>同口径对照</strong></li><li><span>Boundary</span><strong>不做过度外推</strong></li></ul></div><a class="button primary" href="../projects.html">返回全部项目</a><a class="button" href="../writing.html">技术文章与发布计划</a></aside></div></section>
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng. Evidence-led AI Infra portfolio.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">知乎</a><a href="../resume.html">Resume</a></div></div></footer></body></html>

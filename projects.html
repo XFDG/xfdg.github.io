@@ -1,142 +1,98 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="冯浩然的 AI Infra、LLM 系统、GPU 性能与异构计算项目。">
-  <meta name="theme-color" content="#07090d">
-  <link rel="canonical" href="https://xfdg.github.io/projects.html">
-  <title>项目 — Haoran Feng</title>
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css">
-  <script src="script.js" defer></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="冯浩然的 AI Infra、LLM 系统、GPU 性能与异构计算项目。" name="description"/>
+<meta content="#07090d" name="theme-color"/>
+<link href="https://xfdg.github.io/projects.html" rel="canonical"/>
+<title>项目 — Haoran Feng</title>
+<link href="assets/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="styles.css" rel="stylesheet"/>
+<script defer="" src="script.js"></script>
 </head>
 <body data-page="projects">
-  <header class="site-header">
-    <div class="shell header-inner">
-      <a class="brand" href="index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
-      <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
-      <nav class="site-nav" aria-label="主导航">
-        <a href="index.html" data-nav="home">首页</a><a href="experience.html" data-nav="experience">经历</a><a href="projects.html" data-nav="projects">项目</a><a href="writing.html" data-nav="writing">文章</a><a href="roadmap.html" data-nav="roadmap">Roadmap</a><a href="contact.html" data-nav="contact">联系</a><a class="nav-cta" href="resume.html" data-nav="resume">公开简历</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <section class="page-hero">
-      <div class="shell page-hero-grid">
-        <div class="reveal">
-          <span class="eyebrow">Projects & Experiments</span>
-          <h1><span class="gradient-text">项目不是技术名词列表，而是工程证据。</span></h1>
-          <p class="page-lead">每个项目尽量回答四个问题：真实问题是什么、怎样建立对照、数据说明了什么、结论的适用边界在哪里。企业项目采用脱敏方式，只展示可公开的方法与结果。</p>
-        </div>
-        <aside class="page-aside reveal">
-          <span class="page-aside-label">Project Standard</span>
-          <strong>Problem → Experiment → Evidence</strong>
-          <p>优先展示可复现环境、指标定义、个人贡献、失败路径与下一步，而不是只写“熟悉某框架”。</p>
-        </aside>
-      </div>
-    </section>
-
-    <section class="section compact section-line">
-      <div class="shell">
-        <div class="filter-bar reveal" aria-label="项目分类筛选">
-          <button class="filter-button active" type="button" data-filter="all">ALL</button>
-          <button class="filter-button" type="button" data-filter="rl">RL INFRA</button>
-          <button class="filter-button" type="button" data-filter="inference">INFERENCE</button>
-          <button class="filter-button" type="button" data-filter="gpu">GPU PERF</button>
-          <button class="filter-button" type="button" data-filter="heterogeneous">HETEROGENEOUS</button>
-        </div>
-
-        <div class="card-grid">
-          <a class="card project-card filter-item reveal" data-category="rl inference" href="projects/router-replay.html">
-            <div class="card-top"><span class="project-number">01 · 2026</span><span class="badge research">RL INFRA</span></div>
-            <h3>MoE Router Replay：训推路由一致性闭环</h3>
-            <p>在 8×H200、veRL + Megatron-LM + vLLM 环境中建立 Baseline / R2 / R3 对照，覆盖路由正确性、概率漂移、性能与训练质量。</p>
-            <div class="project-evidence"><div class="evidence-chip"><strong>1.0</strong><span>top-k overlap</span></div><div class="evidence-chip"><strong>0.0</strong><span>route mismatch</span></div><div class="evidence-chip"><strong>30×–77×</strong><span>脱敏 drift 改善</span></div><div class="evidence-chip"><strong>8×H200</strong><span>实验环境</span></div></div>
-            <div class="card-footer-link"><span>实验设计、指标与边界</span><span>↗</span></div>
-          </a>
-
-          <a class="card project-card filter-item reveal" data-category="gpu inference" href="projects/gemm-profiling.html">
-            <div class="card-top"><span class="project-number">02 · 2026</span><span class="badge engineering">GPU PERF</span></div>
-            <h3>H200 MoE / Grouped GEMM Profiling 与调优</h3>
-            <p>纠正全展开 rows 与 compact rows 混用造成的性能误判，构造 1024 条 forward range 本地回放，并参与 SM90 config-level tuning。</p>
-            <div class="project-evidence"><div class="evidence-chip"><strong>4×–6×</strong><span>口径误判修正</span></div><div class="evidence-chip"><strong>+5.3%</strong><span>目标 shape</span></div><div class="evidence-chip"><strong>1024</strong><span>forward ranges</span></div><div class="evidence-chip"><strong>±5.4%</strong><span>代表 shape 对齐范围</span></div></div>
-            <div class="card-footer-link"><span>查看 Profile 方法</span><span>↗</span></div>
-          </a>
-
-          <a class="card project-card filter-item reveal" data-category="heterogeneous gpu" href="projects/musa-extension.html">
-            <div class="card-top"><span class="project-number">03 · 2026</span><span class="badge opensource">OPEN SOURCE</span></div>
-            <h3>TensorFlow MUSA Extension：框架、算子与稳定性</h3>
-            <p>从 GELU Fusion、HostMemory、长跑 OOM 到 Kernel Timing，处理框架语义与国产 GPU Device 执行之间的真实工程问题。</p>
-            <div class="project-evidence"><div class="evidence-chip"><strong>+36.6%</strong><span>真实 shape</span></div><div class="evidence-chip"><strong>11 / 11</strong><span>GELU 全部融合</span></div><div class="evidence-chip"><strong>21.2→10.7 μs</strong><span>热点算子</span></div><div class="evidence-chip"><strong>PR #57</strong><span>公开合入</span></div></div>
-            <div class="card-footer-link"><span>查看公开贡献</span><span>↗</span></div>
-          </a>
-
-          <a class="card project-card filter-item reveal" data-category="inference gpu" href="projects/quant-runtime.html">
-            <div class="card-top"><span class="project-number">04 · 2025–2026</span><span class="badge progress">IN PROGRESS</span></div>
-            <h3>基于 PyTorch Extension 的高性能量化推理 Runtime</h3>
-            <p>围绕 W8A8、FP8 与 AWQ 构建轻量 Runtime，使用 CUTLASS 实现核心 GEMM，并探索 Decode GEMV、内存布局与端到端执行。</p>
-            <div class="project-evidence"><div class="evidence-chip"><strong>W8A8</strong><span>INT8 GEMM</span></div><div class="evidence-chip"><strong>FP8 / AWQ</strong><span>量化路径</span></div><div class="evidence-chip"><strong>PyTorch Ext.</strong><span>框架集成</span></div><div class="evidence-chip"><strong>CUTLASS</strong><span>计算后端</span></div></div>
-            <div class="card-footer-link"><span>查看架构与计划</span><span>↗</span></div>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-line">
-      <div class="shell">
-        <div class="section-head reveal">
-          <div><span class="section-kicker">Method / 项目模板</span><h2>所有核心项目采用同一套证据结构。</h2></div>
-          <p>统一结构能够让项目同时服务于简历、面试、技术文章、复现实验和团队知识沉淀。</p>
-        </div>
-        <div class="loop reveal">
-          <div class="loop-step"><span>01</span><strong>背景与问题</strong></div>
-          <div class="loop-step"><span>02</span><strong>核心假设</strong></div>
-          <div class="loop-step"><span>03</span><strong>实验环境</strong></div>
-          <div class="loop-step"><span>04</span><strong>对照与指标</strong></div>
-          <div class="loop-step"><span>05</span><strong>结果与异常</strong></div>
-          <div class="loop-step"><span>06</span><strong>个人贡献</strong></div>
-          <div class="loop-step"><span>07</span><strong>边界与下一步</strong></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-line">
-      <div class="shell">
-        <div class="section-title-row reveal">
-          <div><span class="section-kicker">Archive / 早期项目</span><h2>保留技术起点，但不抢占主线。</h2></div>
-        </div>
-        <div class="card-grid three">
-          <article class="card article-card reveal">
-            <div class="article-meta"><span class="project-number">SOFTWARE</span><span class="badge planned">ARCHIVE</span></div>
-            <h3>大型 C/C++ 静态分析规则工具链</h3>
-            <p>围绕日志定位、规则重构、自动代码生成与 CI 验证，建立第一段真实大型工程经验。</p>
-          </article>
-          <article class="card article-card reveal">
-            <div class="article-meta"><span class="project-number">EMBEDDED</span><span class="badge planned">ARCHIVE</span></div>
-            <h3>智能车与嵌入式系统实践</h3>
-            <p>覆盖 MCU、传感器、控制算法与软硬件协同，是从电子系统走向系统软件的技术起点。</p>
-          </article>
-          <article class="card article-card reveal">
-            <div class="article-meta"><span class="project-number">PLANNED</span><span class="badge progress">NEXT</span></div>
-            <h3>公开 CUDA / CuTe Kernel Benchmark</h3>
-            <p>计划补充可直接运行的 Kernel 项目，包含 shape、roofline、profile、正确性和跨架构对照。</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="shell">
-        <div class="cta-panel reveal">
-          <div><span class="section-kicker">Build in Public</span><h2>项目页面会随着真实实验持续更新。</h2><p>未验证的数据不会写成结论；未公开的内部信息不会为了“显得厉害”而泄露。这个网站首先是一份可信的工程记录。</p></div>
-          <div class="button-row"><a class="button primary" href="roadmap.html">查看更新计划</a><a class="button" href="writing.html">技术文章</a></div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">知乎</a><a href="resume.html">Resume</a></div></div></footer>
+<header class="site-header">
+<div class="shell header-inner">
+<a class="brand" href="index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+<button aria-expanded="false" aria-label="打开导航" class="menu-toggle" type="button"><span></span></button>
+<nav aria-label="主导航" class="site-nav">
+<a data-nav="home" href="index.html">首页</a><a data-nav="experience" href="experience.html">经历</a><a data-nav="projects" href="projects.html">项目</a><a data-nav="writing" href="writing.html">文章</a><a data-nav="roadmap" href="roadmap.html">Roadmap</a><a data-nav="contact" href="contact.html">联系</a><a class="nav-cta" data-nav="resume" href="resume.html">公开简历</a>
+</nav>
+</div>
+</header>
+<main>
+<section class="page-hero">
+<div class="shell page-hero-grid">
+<div class="reveal">
+<span class="eyebrow">Projects &amp; Experiments</span>
+<h1><span class="gradient-text">项目不是技术名词列表，而是工程证据。</span></h1>
+<p class="page-lead">每个项目尽量回答四个问题：真实问题是什么、怎样建立对照、数据说明了什么、结论的适用边界在哪里。企业项目采用脱敏方式，只展示可公开的方法与结果。</p>
+</div>
+<aside class="page-aside reveal">
+<span class="page-aside-label">Project Standard</span>
+<strong>Problem → Experiment → Evidence</strong>
+<p>优先展示可复现环境、指标定义、个人贡献、失败路径与下一步，而不是只写“熟悉某框架”。</p>
+</aside>
+</div>
+</section>
+<section class="section compact section-line">
+<div class="shell">
+<div aria-label="项目分类筛选" class="filter-bar reveal"><button class="filter-button active" data-filter="all" type="button">ALL</button><button class="filter-button" data-filter="systems" type="button">SYSTEMS</button><button class="filter-button" data-filter="rl" type="button">RL INFRA</button><button class="filter-button" data-filter="inference" type="button">INFERENCE</button><button class="filter-button" data-filter="gpu" type="button">GPU PERF</button><button class="filter-button" data-filter="heterogeneous" type="button">HETEROGENEOUS</button><button class="filter-button" data-filter="ml" type="button">ML PIPELINE</button></div>
+<div class="card-grid"><a class="card project-card filter-item reveal" data-category="systems inference gpu" href="projects/flashinfer-ftz.html"><div class="card-top"><span class="project-number">01 · 2026</span><span class="badge engineering">GPU DEBUG</span></div><h3>FlashInfer CUDA Graph Hang：FTZ / Sentinel 根因闭环</h3><p>从 sample_tokens timeout 反向定位 GPU 首因，完成位级修复、SASS 对照与 graph replay 回归。</p><div class="project-evidence"><div class="evidence-chip"><strong>0/3→2/2</strong><span>FULL graph</span></div><div class="evidence-chip"><strong>8→0</strong><span>FTZ predicates</span></div><div class="evidence-chip"><strong>PR #3304</strong><span>等价修复</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card filter-item reveal" data-category="rl systems inference" href="projects/router-replay.html"><div class="card-top"><span class="project-number">02 · 2026</span><span class="badge engineering">RL INFRA</span></div><h3>R3 Router Replay：MoE 训推一致性</h3><p>打通 [token, layer, top-k] route 采集、observe/replay 与 response-mask 指标闭环。</p><div class="project-evidence"><div class="evidence-chip"><strong>17–19%→0</strong><span>mismatch</span></div><div class="evidence-chip"><strong>36–145×</strong><span>f_tau_2</span></div><div class="evidence-chip"><strong>4–7×</strong><span>KL</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card filter-item reveal" data-category="systems inference gpu" href="projects/oe-async.html"><div class="card-top"><span class="project-number">03 · 2026</span><span class="badge engineering">ASYNC OP</span></div><h3>OE Async：GPU Token History 与 Triton Fused Hash</h3><p>消除异步 decode 热路径中的 CPU 往返，并覆盖 mixed、恢复、slot reuse 与多卡状态。</p><div class="project-evidence"><div class="evidence-chip"><strong>+5.0%</strong><span>TP1 vs sync</span></div><div class="evidence-chip"><strong>+4.6%</strong><span>TP2</span></div><div class="evidence-chip"><strong>+3.0%</strong><span>TP4</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card filter-item reveal" data-category="gpu inference" href="projects/gemm-profiling.html"><div class="card-top"><span class="project-number">04 · 2026</span><span class="badge engineering">GPU PERF</span></div><h3>H200 MoE Grouped GEMM Profiling 与调优</h3><p>纠正 expanded / compact rows 口径，构造 1,024 条 range 回放并扩展 SM90 候选。</p><div class="project-evidence"><div class="evidence-chip"><strong>195,976→29,446</strong><span>rows</span></div><div class="evidence-chip"><strong>+5.3%</strong><span>target</span></div><div class="evidence-chip"><strong>+1.84%</strong><span>aggregate</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card filter-item reveal" data-category="systems inference gpu" href="projects/deepgemm-offline.html"><div class="card-top"><span class="project-number">05 · 2026</span><span class="badge engineering">DELIVERY</span></div><h3>DeepGEMM 离线 Cubin 与 Wheel 交付</h3><p>将 JIT 产物转化为可校验 bundle，覆盖单卡与 TP=2 的 cold compile 清零验证。</p><div class="project-evidence"><div class="evidence-chip"><strong>109→359</strong><span>kernels</span></div><div class="evidence-chip"><strong>8 models</strong><span>cold=0</span></div><div class="evidence-chip"><strong>≈7.7×</strong><span>cold load</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card filter-item reveal" data-category="heterogeneous gpu systems" href="projects/musa-extension.html"><div class="card-top"><span class="project-number">06 · 2026</span><span class="badge engineering">OPEN SOURCE</span></div><h3>TensorFlow MUSA Extension</h3><p>处理算子、Fusion、HostMemory、长跑稳定性与 Kernel Timing，形成公开合入记录。</p><div class="project-evidence"><div class="evidence-chip"><strong>PR #57</strong><span>merged</span></div><div class="evidence-chip"><strong>11/11</strong><span>GELU fused</span></div><div class="evidence-chip"><strong>21.2→10.7μs</strong><span>hot path</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card filter-item reveal" data-category="systems inference gpu" href="projects/quant-runtime.html"><div class="card-top"><span class="project-number">07 · 2025–2026</span><span class="badge engineering">RUNTIME</span></div><h3>LLMQRT 量化推理 Runtime</h3><p>贯通 W4A16、W8A8、FP8、Attention 后端、KV Cache 与 H200 kernel 适配。</p><div class="project-evidence"><div class="evidence-chip"><strong>W4A16</strong><span>AWQ</span></div><div class="evidence-chip"><strong>W8A8 / FP8</strong><span>CUTLASS</span></div><div class="evidence-chip"><strong>TP</strong><span>validation</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card filter-item reveal" data-category="ml systems" href="projects/drone-detection-pipeline.html"><div class="card-top"><span class="project-number">08 · 2026</span><span class="badge engineering">ML SYSTEMS</span></div><h3>ICS6201 无人机检测实验流水线</h3><p>统一 171K 样本、六模型实验设计、多 GPU 调度与可恢复验证；严格区分完整设计和已完成核心任务。</p><div class="project-evidence"><div class="evidence-chip"><strong>171,568</strong><span>samples</span></div><div class="evidence-chip"><strong>14/14</strong><span>smoke</span></div><div class="evidence-chip"><strong>6</strong><span>core runs</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a></div>
+</div>
+</section>
+<section class="section section-line">
+<div class="shell">
+<div class="section-head reveal">
+<div><span class="section-kicker">Method / 项目模板</span><h2>所有核心项目采用同一套证据结构。</h2></div>
+<p>统一结构能够让项目同时服务于简历、面试、技术文章、复现实验和团队知识沉淀。</p>
+</div>
+<div class="loop reveal">
+<div class="loop-step"><span>01</span><strong>背景与问题</strong></div>
+<div class="loop-step"><span>02</span><strong>核心假设</strong></div>
+<div class="loop-step"><span>03</span><strong>实验环境</strong></div>
+<div class="loop-step"><span>04</span><strong>对照与指标</strong></div>
+<div class="loop-step"><span>05</span><strong>结果与异常</strong></div>
+<div class="loop-step"><span>06</span><strong>个人贡献</strong></div>
+<div class="loop-step"><span>07</span><strong>边界与下一步</strong></div>
+</div>
+</div>
+</section>
+<section class="section section-line">
+<div class="shell">
+<div class="section-title-row reveal">
+<div><span class="section-kicker">Archive / 早期项目</span><h2>保留技术起点，但不抢占主线。</h2></div>
+</div>
+<div class="card-grid three">
+<article class="card article-card reveal">
+<div class="article-meta"><span class="project-number">SOFTWARE</span><span class="badge planned">ARCHIVE</span></div>
+<h3>大型 C/C++ 静态分析规则工具链</h3>
+<p>围绕日志定位、规则重构、自动代码生成与 CI 验证，建立第一段真实大型工程经验。</p>
+</article>
+<article class="card article-card reveal">
+<div class="article-meta"><span class="project-number">EMBEDDED</span><span class="badge planned">ARCHIVE</span></div>
+<h3>智能车与嵌入式系统实践</h3>
+<p>覆盖 MCU、传感器、控制算法与软硬件协同，是从电子系统走向系统软件的技术起点。</p>
+</article>
+<article class="card article-card reveal">
+<div class="article-meta"><span class="project-number">PLANNED</span><span class="badge progress">NEXT</span></div>
+<h3>公开 CUDA / CuTe Kernel Benchmark</h3>
+<p>计划补充可直接运行的 Kernel 项目，包含 shape、roofline、profile、正确性和跨架构对照。</p>
+</article>
+</div>
+</div>
+</section>
+<section class="section">
+<div class="shell">
+<div class="cta-panel reveal">
+<div><span class="section-kicker">Build in Public</span><h2>项目页面会随着真实实验持续更新。</h2><p>未验证的数据不会写成结论；未公开的内部信息不会为了“显得厉害”而泄露。这个网站首先是一份可信的工程记录。</p></div>
+<div class="button-row"><a class="button primary" href="roadmap.html">查看更新计划</a><a class="button" href="writing.html">技术文章</a></div>
+</div>
+</div>
+</section>
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year=""></span> Haoran Feng.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub</a><a href="https://blog.csdn.net/XFDG01" rel="me noopener noreferrer" target="_blank">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" rel="me noopener noreferrer" target="_blank">知乎</a><a href="resume.html">Resume</a></div></div></footer>
 </body>
 </html>

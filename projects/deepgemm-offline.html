@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="面向隔离网络的 H200 推理环境，将运行时 JIT shape 收集、cubin union、去重、SHA-256 校验、单卡/TP=2 覆盖与 wheel-only 安装串成可交付链路。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/deepgemm-offline.html"><title>DeepGEMM 离线预编译：Cubin Bundle、Cold Compile 清零与 Wheel 交付 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<body data-page="projects" class="evidence-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../index.html" aria-label="返回首页"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+    <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="detail-hero"><div class="shell"><div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>DeepGEMM 离线预编译：Cubin Bundle、Cold Compile 清零与 Wheel 交付</span></div><span class="eyebrow reveal">Inference Delivery · Offline Environment · DeepGEMM</span><h1 class="reveal"><span class="gradient-text">DeepGEMM 离线预编译：Cubin Bundle、Cold Compile 清零与 Wheel 交付</span></h1><p class="detail-lead reveal">面向隔离网络的 H200 推理环境，将运行时 JIT shape 收集、cubin union、去重、SHA-256 校验、单卡/TP=2 覆盖与 wheel-only 安装串成可交付链路。</p><div class="detail-meta-grid reveal"><div class="detail-meta"><span>Role</span><strong>Build, Coverage &amp; Offline Delivery Engineering</strong></div><div class="detail-meta"><span>Environment</span><strong>H200 Single GPU + TP=2 Validation</strong></div><div class="detail-meta"><span>Stack</span><strong>DeepGEMM · vLLM · Cubin · Wheel · SHA-256</strong></div><div class="detail-meta"><span>Status</span><strong>公开交付总结 · 验证范围明确</strong></div></div></div></section>
+  <section class="section compact section-line"><div class="shell detail-layout"><article class="detail-content">
+    <section><span class="section-kicker">Evidence Snapshot / 证据快照</span><h2>用可复核的数字描述贡献，也明确数字不能证明什么。</h2><div class="metric-grid"><div class="metric-card"><strong>109 → 359</strong><span>union bundle kernels</span><small>约 +230%</small></div><div class="metric-card"><strong>8</strong><span>单卡模型覆盖</span><small>验证范围 cold=0</small></div><div class="metric-card"><strong>TP=2</strong><span>FP8 代表模型</span><small>cold=0</small></div><div class="metric-card"><strong>≈7.7×</strong><span>precompiled vs cold load</span><small>启动阶段</small></div></div></section>
+    <section><span class="section-kicker">System / 系统链路</span><h2>从问题到验证的工程闭环</h2><div class="architecture"><div class="arch-node"><strong>Shape Capture</strong><span>runtime JIT inventory</span></div><div class="arch-node"><strong>Bundle Union</strong><span>deduplicate cubins</span></div><div class="arch-node"><strong>Integrity</strong><span>SHA-256 checks</span></div><div class="arch-node"><strong>Coverage</strong><span>single GPU + TP=2</span></div><div class="arch-node"><strong>Delivery</strong><span>two-wheel / combined wheel</span></div></div></section>
+    
+    <section class="source-banner"><div><span class="section-kicker">Public Sources / 公开证据</span><h2>以下正文来自 ICS6201 <code>me</code> 分支的脱敏文档。</h2><p>内部仓库、节点、镜像、模型路径、运行标识、凭据与原始日志均不在页面中。公开数字保留原文定义和适用边界。</p></div><div class="button-row"><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/deep_gemm/README.md" target="_blank" rel="noopener noreferrer">专题 README ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/deep_gemm/deep_gemm_wheel_only_delivery_20260521.md" target="_blank" rel="noopener noreferrer">Wheel-only 交付说明 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/deep_gemm/deepgemm-offline-cubin-plan.md" target="_blank" rel="noopener noreferrer">Offline cubin 设计 ↗</a></div></section>
+    <section class="evidence-section"><h2>核心结果与交付边界</h2>
+<blockquote>
+<p>目标：让隔离网络环境中的 vLLM/DeepGEMM 直接加载预编译 cubin，跳过运行时 NVCC JIT，并以可校验 wheel 交付。</p>
+</blockquote>
+<h4>核心结果</h4>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th style="text-align: right;">结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>union bundle</td>
+<td style="text-align: right;">109 -&gt; 359 kernels，增加约 230%</td>
+</tr>
+<tr>
+<td>H200 单卡覆盖</td>
+<td style="text-align: right;">8 个模型，验证范围内 cold=0</td>
+</tr>
+<tr>
+<td>TP=2 覆盖</td>
+<td style="text-align: right;">Qwen3-8B-FP8，cold=0</td>
+</tr>
+<tr>
+<td>TP=2 load</td>
+<td style="text-align: right;">precompiled load 相比 cold load 约 7.7x</td>
+</tr>
+<tr>
+<td>wheel</td>
+<td style="text-align: right;">baseline 453MB、DeepGEMM 17MB、combined 469MB</td>
+</tr>
+</tbody>
+</table>
+<h4>工程链路</h4>
+<pre><code class="language-text">模型 shape 收集
+  -&gt; 运行时 JIT 产物归档
+  -&gt; 多模型 bundle union / 去重
+  -&gt; SHA-256 一致性检查
+  -&gt; 单卡与 TP=2 cold=0 验证
+  -&gt; baseline + DeepGEMM / combined wheel
+  -&gt; 离线安装与包内 bundle 自动解析
+</code></pre>
+<p>关键工作还包括修复 TP=2 环境的 NCCL/CUDA 包冲突，并区分“bundle 命中”“加载耗时”和“稳态 GEMM latency”三个指标。</p>
+<h4>文档</h4>
+<table>
+<thead>
+<tr>
+<th>文档</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/deep_gemm/report_stage3_final_brief.md" rel="noopener noreferrer" target="_blank">Stage3 最终简报</a></td>
+<td>模型覆盖、kernel 数、wheel 大小和未完成项</td>
+</tr>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/deep_gemm/deep_gemm_wheel_only_delivery_20260521.md" rel="noopener noreferrer" target="_blank">Wheel-only 交付说明</a></td>
+<td>two-wheel/combined 安装、校验和交付边界</td>
+</tr>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/deep_gemm/deepgemm-offline-cubin-plan.md" rel="noopener noreferrer" target="_blank">Offline cubin 设计计划</a></td>
+<td>config cache 与预编译目录设计背景</td>
+</tr>
+</tbody>
+</table>
+<h4>结论边界</h4>
+<ul>
+<li>7.7x 是 cold/load 启动阶段收益，不是 hot GEMM TFLOPS 提升。</li>
+<li>8 个模型表示验证覆盖，不表示所有可能 shape 已预编译。</li>
+<li>其中一个 BF16 dense 小模型不会触发 DeepGEMM，保留在清单中是为了验证“不误触发”。</li>
+<li>超大模型和 H100 因当时硬件条件未覆盖，不能写成全平台支持。</li>
+</ul>
+<h4>简历建议</h4>
+<p>面向离线 H200 推理环境设计 DeepGEMM cubin 预编译与 wheel-only 交付，将 union bundle 从 109 扩展到 359 kernels，覆盖 8 个单卡模型及 Qwen3-8B-FP8 TP=2，验证范围内实现 cold compile 清零，并通过 SHA-256 保证 bundle 合并一致性。</p></section><section class="evidence-section"><h2>离线安装与包内解析</h2>
+<blockquote>
+<p>日期：2026-05-21<br/>
+目标：把离线 precompiled 交付收敛为只交付 <code>deep_gemm</code> wheel，并把默认 bundle 路径切到 Hopper union bundle。</p>
+</blockquote>
+<h4>1. 本次落地内容</h4>
+<ul>
+<li>恢复 <code>deepgemm-packaged-precompiled/deep_gemm/precompiled/generate_precompiled.py</code></li>
+<li>恢复 <code>deepgemm-packaged-precompiled/deep_gemm/precompiled/seed_cache_root.py</code></li>
+<li>新增 <code>deepgemm-packaged-precompiled/scripts/build_hopper_union_bundle.py</code></li>
+<li>新增包内元数据 <code>deep_gemm/precompiled/release_coverage.json</code></li>
+<li>将 package 默认 bundle 切换到：</li>
+</ul>
+<pre><code class="language-text">deep_gemm/precompiled/sm90/nvcc12/fp8/qwen3_dpsk_v32_h100_h200_fp8/cache
+</code></pre>
+<h4>2. 为什么这样改</h4>
+<p>本轮 mentor 已经明确最终更希望拿到的是 <code>deep_gemm</code> wheel，而不是 baseline <code>vllm</code> wheel 或 combined wheel。</p>
+<p>所以交付形态收敛为：</p>
+<ul>
+<li>目标环境保留自己的 <code>vllm</code></li>
+<li>单独安装 <code>deep_gemm-*.whl</code></li>
+<li><code>deep_gemm</code> wheel 自带 package 内 precompiled bundle</li>
+<li>安装后如果未手动设置 <code>DG_JIT_PRECOMPILED_DIR</code>，默认自动解析 package 内 <code>default.json</code></li>
+</ul>
+<h4>3. 统一生成 union bundle</h4>
+<p>在 <code>deepgemm-packaged-precompiled</code> 目录执行：</p>
+<pre><code class="language-bash">python3 scripts/build_hopper_union_bundle.py --force
+</code></pre>
+<p>默认行为：</p>
+<ul>
+<li>从现有 <code>qwen3_5_35b_a3b_fp8/cache</code> 读取 320-kernel seed</li>
+<li>生成新 workload：</li>
+</ul>
+<pre><code class="language-text">sm90/nvcc12/fp8/qwen3_dpsk_v32_h100_h200_fp8/cache
+</code></pre>
+<ul>
+<li>自动写入新的 <code>default.json</code></li>
+<li>自动生成 <code>deep_gemm/precompiled/release_delivery.json</code></li>
+</ul>
+<p>如果后续补了 H100 / H200 TP / DeepSeek 的新 cache，可以继续 merge：</p>
+<pre><code class="language-bash">python3 scripts/build_hopper_union_bundle.py \
+  --source-cache-dir [redacted-path]/qwen3_h200_tp2/cache \
+  --source-cache-dir [redacted-path]/qwen3_h100/cache \
+  --source-cache-dir [redacted-path]/deepseek_v32_h200/cache \
+  --source-cache-dir [redacted-path]/deepseek_v32_h100/cache \
+  --summary-json [redacted-path]/qwen3_h200_tp2_verify_summary.json \
+  --summary-json [redacted-path]/deepseek_v32_h200_verify_summary.json
+</code></pre>
+<p>脚本会逐个 merge，并对同名 kernel 做 sha256 一致性检查；如果 hash 相同但内容不同，会直接报错停下，不会悄悄覆盖。</p>
+<h4>4. wheel-only 打包流程</h4>
+<p>在 <code>deepgemm-packaged-precompiled</code> 目录执行：</p>
+<pre><code class="language-bash">python3 -m pytest tests/test_precompiled_bundle.py
+python3 deep_gemm/precompiled/generate_precompiled.py \
+  --check-bundle-dir deep_gemm/precompiled/sm90/nvcc12/fp8/qwen3_dpsk_v32_h100_h200_fp8
+python3 setup.py bdist_wheel
+sha256sum dist/deep_gemm-*.whl &gt; dist/SHA256SUMS
+</code></pre>
+<h4>5. 安装验证</h4>
+<p>在干净环境中：</p>
+<pre><code class="language-bash">python3 -m pip install --force-reinstall dist/deep_gemm-*.whl --break-system-packages
+python3 - &lt;&lt;'PY'
+import os
+import deep_gemm
+print("deep_gemm =", deep_gemm.__file__)
+print("DG_JIT_PRECOMPILED_DIR =", os.environ.get("DG_JIT_PRECOMPILED_DIR"))
+PY
+</code></pre>
+<p>如果要把 package 内 bundle seed 到新的 <code>DG_JIT_CACHE_DIR</code>，可以执行：</p>
+<pre><code class="language-bash">python3 "$(python3 - &lt;&lt;'PY'
+import pathlib
+import deep_gemm
+print(pathlib.Path(deep_gemm.__file__).resolve().parent / 'precompiled' / 'seed_cache_root.py')
+PY
+)" \
+  --cache-root /tmp/dg_jit_cache \
+  --force
+</code></pre>
+<h4>6. 当前覆盖情况</h4>
+<p>当前 release 覆盖元数据放在：</p>
+<pre><code class="language-text">deepgemm-packaged-precompiled/deep_gemm/precompiled/release_coverage.json
+</code></pre>
+<p>现阶段已经有明确证据的条目：</p>
+<ul>
+<li>H200 单卡 <code>Qwen3-8B-FP8</code>：verify JSON 可直接解析，<code>cold=0</code></li>
+<li>H200 单卡 <code>Qwen3-14B-FP8</code>：two-wheel 手工记录，<code>cold=0</code></li>
+<li>H200 单卡 <code>Qwen3.5-35B-A3B-FP8</code>：报告记录显示 <code>cold=0</code></li>
+</ul>
+<p>仍待补齐：</p>
+<ul>
+<li>H200 <code>TP=2</code></li>
+<li>H100 单卡</li>
+<li>DPSK / DeepSeek-V3.2 cook workload</li>
+</ul>
+<h4>7. 现在的边界</h4>
+<p>本次已经把“只交付 <code>deep_gemm</code> wheel”的源码、默认 bundle 入口、bundle 生成脚本、包内覆盖元数据都落到仓库里了。</p>
+<p>但下面这部分仍然需要后续实机补充，不能伪造：</p>
+<ul>
+<li>H200 <code>TP=2</code> fresh verify</li>
+<li>H100 fresh verify</li>
+<li>DPSK / DeepSeek-V3.2 实际 cook 模型路径 collect/verify</li>
+</ul>
+<p>换句话说，现在仓库已经具备了 wheel-only 交付骨架；剩下是继续把新 cache 和新 verify 结果灌进同一个 union bundle 里。</p></section><section class="evidence-section"><h2>预编译目录与 cache 设计</h2>
+<h4>1. 背景与目标</h4>
+<h4>当前行为</h4>
+<pre><code>调用 fp8_gemm_nt(m, n, k, ...) 
+  → 构造 GemmDesc
+  → get_best_config&lt;ArchSpec&gt;(desc)   ← 每次重新算，无缓存
+      → 遍历所有 layout candidates
+      → 对每个 candidate 调用 get_layout_info() 计算 wave/cycle 估算
+      → 选出最优 layout
+      → 推导 storage/pipeline/launch config
+  → compiler-&gt;build(config)           ← 已有 cubin 磁盘缓存
+</code></pre>
+<h4>问题</h4>
+<p><code>get_best_config</code> 每次都重新遍历 layout candidates 计算，相同 shape 多次调用时完全重复劳动。</p>
+<h4>目标</h4>
+<p>为 <code>get_best_config</code> 加一层持久化缓存：</p>
+<pre><code>get_best_config(desc)
+  → 先查缓存（内存 map）
+    → 命中：直接返回 GemmConfig ✓
+    → 未命中：走原有逻辑算出 config → 写入缓存 → 返回
+</code></pre>
+<hr/>
+<h4>2. 数据结构分析</h4>
+<h4>缓存 Key：GemmDesc</h4>
+<p><code>GemmDesc</code> 中决定 config 结果的字段（与 shape 和运行环境相关）：</p>
+<pre><code>gemm_type, kernel_type, m, n, k, num_groups
+a_dtype, b_dtype, cd_dtype
+major_a, major_b
+with_accumulation
+num_sms, tc_util
+compiled_dims
+expected_m, expected_n, expected_k, expected_num_groups
+</code></pre>
+<p>已有 <code>operator&lt;&lt;</code> 可直接序列化为唯一字符串，用作 key。</p>
+<h4>缓存 Value：GemmConfig</h4>
+<pre><code>Layout:         swap_ab, block_m, block_n, block_k, cluster_m, cluster_n   (6 int)
+StorageConfig:  load_block_m, load_block_n, store_block_m, store_block_n,
+                swizzle_a_mode, swizzle_b_mode, swizzle_cd_mode             (7 int)
+PipelineConfig: smem_size, num_stages                                        (2 int)
+LaunchConfig:   num_sms, num_sms_per_cluster, num_threads,
+                num_tma_threads, num_math_threads,
+                num_non_epilogue_threads, num_epilogue_threads               (7 int)
+</code></pre>
+<p>总共 22 个 int，序列化为空格分隔的字符串即可，无需外部依赖。</p>
+<hr/>
+<h4>3. 实现方案</h4>
+<h4>3.1 新增文件：<code>csrc/jit/config_cache.hpp</code></h4>
+<pre><code class="language-cpp">class ConfigCache {
+    // 内存缓存
+    std::unordered_map&lt;std::string, GemmConfig&gt; cache;
+    // 磁盘缓存路径
+    std::filesystem::path cache_file;
+    std::mutex mtx;  // 多线程安全
+
+public:
+    ConfigCache();                                        // 读取磁盘缓存到内存
+    std::optional&lt;GemmConfig&gt; get(const std::string&amp; key);
+    void put(const std::string&amp; key, const GemmConfig&amp; config);  // 同时写磁盘
+
+private:
+    static std::string serialize(const GemmConfig&amp; config);
+    static GemmConfig deserialize(const std::string&amp; str);
+};
+</code></pre>
+<p><strong>磁盘缓存文件</strong>：<code>$DG_JIT_CACHE_DIR/config_cache.txt</code>（默认 <code>~/.deep_gemm/config_cache.txt</code>）</p>
+<p><strong>文件格式</strong>（每行一条记录，<code>|</code> 分隔 key 和 value）：</p>
+<pre><code>GemmDesc(gemm_type=0,...,expected_k=0)|0 128 128 64 1 1 0 128 0 0 128 0 1 2 49152 4 ...
+</code></pre>
+<h4>3.2 修改文件：<code>csrc/jit_kernels/heuristics/common.hpp</code></h4>
+<p>在 <code>get_best_config()</code> 开头加缓存查询，末尾加缓存写入：</p>
+<pre><code class="language-cpp">template &lt;typename ArchSpec&gt;
+static GemmConfig get_best_config(const GemmDesc&amp; desc) {
+    desc.check_validity();
+
+    // ── 新增：查缓存 ──────────────────────────────
+    std::ostringstream oss;
+    oss &lt;&lt; desc;
+    const auto key = oss.str();
+    if (const auto cached = config_cache-&gt;get(key); cached.has_value())
+        return cached.value();
+    // ─────────────────────────────────────────────
+
+    // 原有逻辑（不动）
+    const auto layout_candidates = ArchSpec::get_layout_candidates(desc);
+    ...
+    const auto gemm_config = GemmConfig { ... };
+
+    // ── 新增：存缓存 ──────────────────────────────
+    config_cache-&gt;put(key, gemm_config);
+    // ─────────────────────────────────────────────
+
+    return gemm_config;
+}
+</code></pre>
+<h4>3.3 暴露给 Python（可选）：<code>csrc/apis/runtime.hpp</code></h4>
+<pre><code class="language-cpp">m.def("clear_config_cache", []() { config_cache-&gt;clear(); });
+m.def("get_config_cache_size", []() { return config_cache-&gt;size(); });
+m.def("set_config_cache_dir", [](const std::string&amp; path) {
+    config_cache-&gt;set_cache_dir(path);
+});
+</code></pre>
+<hr/>
+<h4>4. 涉及改动的文件</h4>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>改动类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>csrc/jit/config_cache.hpp</code></td>
+<td><strong>新增</strong></td>
+<td>ConfigCache 完整实现</td>
+</tr>
+<tr>
+<td><code>csrc/jit_kernels/heuristics/common.hpp</code></td>
+<td>修改</td>
+<td>加缓存查询/写入（~10 行）</td>
+</tr>
+<tr>
+<td><code>csrc/apis/runtime.hpp</code></td>
+<td>修改（可选）</td>
+<td>暴露 Python API</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h4>5. 工作流</h4>
+<h4>仓库结构</h4>
+<pre><code>origin   → personal fork（地址省略）
+upstream → team repository（地址省略）
+</code></pre>
+<h4>开发循环</h4>
+<pre><code>CPU 机器（CC 辅助写代码）
+  → git push origin feature/config-cache
+GPU 机器
+  → git pull
+  → pip install -e .  / python setup.py develop
+  → python tests/test_fp8.py  验证正确性
+  → 验证缓存是否命中（DG_PRINT_CONFIGS=1）
+</code></pre>
+<hr/>
+<h4>6. 待验证</h4>
+<ul>
+<li>[ ] GPU 机器能否正常编译安装 deepgemm（<code>pip install -e .</code>）</li>
+<li>[ ] 并发场景下缓存写入的线程安全</li>
+<li>[ ] 缓存文件在多机分布式下的共享策略（NFS / 各机独立）</li>
+<li>[ ] <code>num_sms</code> 是运行时动态值，是否应纳入 key（不同机器 SM 数不同）</li>
+</ul></section>
+    <section class="callout warning"><strong>结论边界</strong><p>约 7.7× 是 cold/load 启动阶段差异，不是 hot GEMM TFLOPS 提升；8 个模型代表已验证覆盖，不表示所有 shape 或所有 GPU 架构均已支持。</p></section>
+  </article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Evidence Standard</h3><ul class="sidebar-list"><li><span>Problem</span><strong>可复现定义</strong></li><li><span>Method</span><strong>控制变量 / Oracle</strong></li><li><span>Result</span><strong>同口径对照</strong></li><li><span>Boundary</span><strong>不做过度外推</strong></li></ul></div><a class="button primary" href="../projects.html">返回全部项目</a><a class="button" href="../writing.html">技术文章与发布计划</a></aside></div></section>
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng. Evidence-led AI Infra portfolio.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">知乎</a><a href="../resume.html">Resume</a></div></div></footer></body></html>

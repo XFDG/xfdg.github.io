@@ -1,156 +1,277 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="基于 PyTorch Extension 与 CUTLASS 的高性能 LLM 量化推理 Runtime 项目。">
-  <meta name="theme-color" content="#07090d">
-  <link rel="canonical" href="https://xfdg.github.io/projects/quant-runtime.html">
-  <title>Quantized LLM Runtime — Haoran Feng</title>
-  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../styles.css">
-  <script src="../script.js" defer></script>
-</head>
-<body data-page="projects">
-  <header class="site-header">
-    <div class="shell header-inner">
-      <a class="brand" href="../index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
-      <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
-      <nav class="site-nav" aria-label="主导航">
-        <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
-      </nav>
-    </div>
-  </header>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="围绕模型加载、量化 schema、Linear 替换、AWQ GEMM/GEMV、CUTLASS INT8/FP8、Attention 后端与 KV Cache 建立轻量量化推理 Runtime，并在新一代 GPU 上补齐 kernel、单卡和 TP 验证。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/quant-runtime.html"><title>LLMQRT：W4A16 / W8A8 / FP8 量化推理 Runtime 与 H200 适配 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<body data-page="projects" class="evidence-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../index.html" aria-label="返回首页"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+    <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="detail-hero"><div class="shell"><div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>LLMQRT：W4A16 / W8A8 / FP8 量化推理 Runtime 与 H200 适配</span></div><span class="eyebrow reveal">Quantized Inference Runtime · CUDA · CUTLASS</span><h1 class="reveal"><span class="gradient-text">LLMQRT：W4A16 / W8A8 / FP8 量化推理 Runtime 与 H200 适配</span></h1><p class="detail-lead reveal">围绕模型加载、量化 schema、Linear 替换、AWQ GEMM/GEMV、CUTLASS INT8/FP8、Attention 后端与 KV Cache 建立轻量量化推理 Runtime，并在新一代 GPU 上补齐 kernel、单卡和 TP 验证。</p><div class="detail-meta-grid reveal"><div class="detail-meta"><span>Role</span><strong>Runtime Architecture &amp; GPU Adaptation</strong></div><div class="detail-meta"><span>Environment</span><strong>H200-oriented Validation · Single / Tensor Parallel</strong></div><div class="detail-meta"><span>Stack</span><strong>PyTorch Extension · CUDA · CUTLASS · FA2/FA4/SDPA</strong></div><div class="detail-meta"><span>Status</span><strong>公开架构与方法 · 性能按同口径复验</strong></div></div></div></section>
+  <section class="section compact section-line"><div class="shell detail-layout"><article class="detail-content">
+    <section><span class="section-kicker">Evidence Snapshot / 证据快照</span><h2>用可复核的数字描述贡献，也明确数字不能证明什么。</h2><div class="metric-grid"><div class="metric-card"><strong>W4A16</strong><span>AWQ weight-only</span><small>CUDA GEMM / GEMV</small></div><div class="metric-card"><strong>W8A8</strong><span>SmoothQuant</span><small>CUTLASS INT8</small></div><div class="metric-card"><strong>FP8</strong><span>dynamic / static</span><small>CUTLASS row/tensor-wise</small></div><div class="metric-card"><strong>FA2 / FA4 / SDPA</strong><span>Attention fallback</span><small>prefill / decode</small></div></div></section>
+    <section><span class="section-kicker">System / 系统链路</span><h2>从问题到验证的工程闭环</h2><div class="architecture"><div class="arch-node"><strong>Public API</strong><span>AutoQuantForCausalLM</span></div><div class="arch-node"><strong>Model Layer</strong><span>Qwen / Llama / OPT</span></div><div class="arch-node"><strong>Quant Linear</strong><span>AWQ / SQ / FP8</span></div><div class="arch-node"><strong>Kernel Layer</strong><span>CUDA / CUTLASS / Triton</span></div><div class="arch-node"><strong>Runtime</strong><span>Attention + KV cache + generate</span></div></div></section>
+    
+    <section class="source-banner"><div><span class="section-kicker">Public Sources / 公开证据</span><h2>以下正文来自 ICS6201 <code>me</code> 分支的脱敏文档。</h2><p>内部仓库、节点、镜像、模型路径、运行标识、凭据与原始日志均不在页面中。公开数字保留原文定义和适用边界。</p></div><div class="button-row"><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/llmqrt/README.md" target="_blank" rel="noopener noreferrer">专题 README ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/llmqrt/architecture.md" target="_blank" rel="noopener noreferrer">架构说明 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/llmqrt/h200_development_log.md" target="_blank" rel="noopener noreferrer">H200 开发记录 ↗</a></div></section>
+    <section class="evidence-section"><h2>适配、正确性与公开边界</h2>
+<blockquote>
+<p>快照日期：2026-07-16</p>
+</blockquote>
+<p>本专题记录在新一代 GPU 上进行量化推理 Runtime 适配、单卡/张量并行验证和性能排障的工程方法。原始工程位置、内部开发分支、模型目录、环境路径与启动命令均已删除。</p>
+<h4>主要工作</h4>
+<ul>
+<li>定位并修复特定 GPU 架构上的量化 kernel 非法访存风险；</li>
+<li>验证权重打包、量化 schema、KV cache 与 attention 后端回退逻辑；</li>
+<li>在单卡和多卡场景检查可读输出、数值一致性和通信聚合；</li>
+<li>将后端能力检测和构建选项做成可移植配置，降低环境耦合。</li>
+</ul>
+<h4>复现原则</h4>
+<p>使用公开可获得的模型与本地授权环境重建基线。测试至少应记录硬件代际、软件版本、精度、并行度、输入长度、预热与重复次数；不要发布私有权重位置、服务器路径或访问方式。</p>
+<h4>证据边界</h4>
+<p>该专题中的“通过”表示已在受控测试条件下完成运行或数值检查，不等于所有模型、量化格式和并行配置都已验证。性能数据应以同一基线下的相对趋势报告。</p></section><section class="evidence-section"><h2>模块、加载、Attention 与量化路径</h2>
+<h4>1. 整体架构</h4>
+<pre><code class="language-mermaid">graph TB
+    subgraph "用户层"
+        A[example 脚本] --&gt; B[AutoQuantForCausalLM]
+        C[chat.py 交互对话] --&gt; B
+        D[eval_acc PPL评估] --&gt; B
+    end
 
-  <main>
-    <section class="detail-hero">
-      <div class="shell">
-        <div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>Quantized LLM Runtime</span></div>
-        <span class="eyebrow reveal">Inference Runtime · In Progress</span>
-        <h1 class="reveal"><span class="gradient-text">高性能 LLM 量化推理 Runtime：把量化格式、Kernel 与模型执行连成一条链。</span></h1>
-        <p class="detail-lead reveal">面向 Llama / Qwen 等 Decoder-only 模型，使用 PyTorch Extension 封装 CUTLASS Kernel，探索 W8A8、FP8 与 AWQ 的权重/激活表示、GEMM、Decode GEMV、内存布局和端到端执行。该项目仍在持续完善，首版不写尚未完成的性能结论。</p>
-        <div class="detail-meta-grid reveal">
-          <div class="detail-meta"><span>Type</span><strong>Personal Systems Project</strong></div>
-          <div class="detail-meta"><span>Period</span><strong>2025.12 — In Progress</strong></div>
-          <div class="detail-meta"><span>Stack</span><strong>PyTorch Ext. · CUTLASS · CUDA</strong></div>
-          <div class="detail-meta"><span>Quantization</span><strong>W8A8 · FP8 · AWQ</strong></div>
-        </div>
-      </div>
-    </section>
+    subgraph "核心层 (runtime_refact/core)"
+        B --&gt; E[api.py&lt;br/&gt;公开API]
+        E --&gt; F[base.py&lt;br/&gt;BaseModelForCausalLM]
+        F --&gt; G[config.py&lt;br/&gt;QuantConfig解析]
+    end
 
-    <section class="section compact section-line">
-      <div class="shell detail-layout">
-        <article class="detail-content">
-          <section id="goal">
-            <span class="section-kicker">01 / Goal</span>
-            <h2>目标不是重写一个完整 vLLM，而是理解高性能推理 Runtime 的关键边界。</h2>
-            <p>项目通过一个可控的小型 Runtime，拆解模型加载、量化参数、线性层替换、Kernel dispatch、workspace、KV Cache 与 decode 执行。这样可以更直接地回答：某种量化为什么省显存、计算是否真的更快、数据转换成本在哪里、Kernel 优化能否转化为端到端收益。</p>
-            <div class="callout"><strong>当前原则</strong><p>先保证数值正确和接口清晰，再比较 Kernel；先建立 FP16 baseline，再分别引入 W8A8、FP8 与 weight-only 路径，避免多个变量同时变化。</p></div>
-          </section>
+    subgraph "模型层 (runtime_refact/nn_models)"
+        F --&gt; H[models/]
+        H --&gt; H1[qwen2.py]
+        H --&gt; H2[qwen3.py]
+        H --&gt; H3[qwen3_moe.py]
+        H --&gt; H4[llama.py]
+        H --&gt; H5[opt.py]
 
-          <section id="architecture">
-            <span class="section-kicker">02 / Architecture</span>
-            <h2>Runtime 模块</h2>
-            <div class="architecture">
-              <div class="arch-node"><strong>Model Loader</strong><span>HF weights / config</span></div>
-              <div class="arch-node"><strong>Quant Pack</strong><span>scale / zero / layout</span></div>
-              <div class="arch-node"><strong>PyTorch Extension</strong><span>C++ / CUDA binding</span></div>
-              <div class="arch-node"><strong>Kernel Backend</strong><span>CUTLASS GEMM / GEMV</span></div>
-              <div class="arch-node"><strong>Runtime Loop</strong><span>prefill / decode / cache</span></div>
-            </div>
-            <p>Linear 层是主要切入点：权重预处理后，Runtime 根据 batch、M/N/K、dtype 与量化策略选择 GEMM 或 GEMV 路径。Prefill 与 Decode 的算术强度和形状不同，不能用同一个“最优 Kernel”概括。</p>
-          </section>
+        F --&gt; I[modules/]
+        I --&gt; I1[linear/]
+        I1 --&gt; I1a[linear_awq.py&lt;br/&gt;W4A16]
+        I1 --&gt; I1b[linear_sq.py&lt;br/&gt;W8A8]
+        I1 --&gt; I1c[linear_fp8.py&lt;br/&gt;FP8]
 
-          <section id="quantization">
-            <span class="section-kicker">03 / Quantization</span>
-            <h2>三条量化路径解决的问题不同</h2>
-            <div class="data-table-wrap">
-              <table class="data-table">
-                <thead><tr><th>Path</th><th>Representation</th><th>Main Benefit</th><th>Main Cost / Risk</th></tr></thead>
-                <tbody>
-                  <tr><td>W8A8</td><td>INT8 weight + INT8 activation</td><td>高吞吐 GEMM、较低带宽</td><td>激活量化、scale 与精度控制</td></tr>
-                  <tr><td>FP8</td><td>FP8 weight / activation</td><td>Hopper Tensor Core 友好</td><td>格式选择、动态范围与缩放</td></tr>
-                  <tr><td>AWQ</td><td>低比特 weight-only</td><td>显著降低权重显存与带宽</td><td>反量化融合、group scale、decode 路径</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p>项目重点关注量化参数的数据结构与布局是否匹配 Kernel 读取模式，以及反量化、cast、transpose 等“非 GEMM”操作是否吞掉理论收益。</p>
-          </section>
+        I --&gt; I2[nonlinear/]
+        I2 --&gt; I2a[attention.py&lt;br/&gt;FA2/FA4/SDPA]
+        I2 --&gt; I2b[KVcache.py]
+        I2 --&gt; I2c[norm.py&lt;br/&gt;RMSNorm]
+        I2 --&gt; I2d[transformer_layer.py]
+    end
 
-          <section id="kernel">
-            <span class="section-kicker">04 / Kernel</span>
-            <h2>Prefill GEMM 与 Decode GEMV 需要分开设计。</h2>
-            <div class="skill-groups">
-              <div class="skill-group"><h3>Prefill</h3><p>M 较大，适合使用 Tensor Core GEMM；重点是 tile、pipeline、layout、epilogue 与量化 scale 融合。</p></div>
-              <div class="skill-group"><h3>Decode</h3><p>M 接近 1 或小 batch，容易变成 memory / launch bound；需要评估 GEMV、persistent kernel、权重读取与 batch 聚合。</p></div>
-              <div class="skill-group"><h3>Correctness</h3><p>与 PyTorch FP16/FP32 reference 比较 max error、relative error、token logits 与生成结果。</p></div>
-              <div class="skill-group"><h3>Performance</h3><p>分别统计 Kernel latency、E2E latency、tokens/s、显存与转换开销，避免只展示单算子峰值。</p></div>
-            </div>
-          </section>
+    subgraph "Kernel层"
+        I1a --&gt; J1[csrc/awq/&lt;br/&gt;GEMM/GEMV CUDA]
+        I1b --&gt; J2[csrc/smoothquant/&lt;br/&gt;CUTLASS INT8]
+        I1c --&gt; J3[csrc/fp8/&lt;br/&gt;CUTLASS FP8]
+        I1a --&gt; J4[triton_kernels/&lt;br/&gt;AWQ Triton]
+    end
 
-          <section id="status">
-            <span class="section-kicker">05 / Current Status</span>
-            <h2>目前已经完成与正在补齐的部分</h2>
-            <ul class="check-list">
-              <li class="done">建立轻量 Runtime 与 PyTorch Extension 的基本代码结构。</li>
-              <li class="done">完成 CUTLASS W8A8 / INT8 GEMM 的封装方向与 Linear 层替换设计。</li>
-              <li class="done">设计量化权重、scale 与内存布局的基本数据结构。</li>
-              <li>补齐 FP16、W8A8、FP8、AWQ 的统一 correctness suite。</li>
-              <li>完成 Prefill / Decode 分开的 E2E latency、throughput 与 memory 对照。</li>
-              <li>增加不同模型、batch、sequence length 与 GPU 架构的自动化 benchmark。</li>
-            </ul>
-            <div class="callout warning"><strong>为什么不在首版写“提升 X%”</strong><p>目前缺少在统一环境、统一 baseline 和完整 E2E 口径下整理好的最终数据。单个 CUTLASS Kernel 的速度不能直接代表 Runtime 或模型生成性能，因此暂不写结论性数字。</p></div>
-          </section>
+    subgraph "第三方库"
+        J2 --&gt; K1[3rdparty/cutlass&lt;br/&gt;NVIDIA CUTLASS]
+        J3 --&gt; K1
+        I2a --&gt; K2[flash_attn&lt;br/&gt;FA2/FA4]
+        I2a --&gt; K3[PyTorch SDPA]
+    end
 
-          <section id="benchmark">
-            <span class="section-kicker">06 / Benchmark Plan</span>
-            <h2>计划中的性能矩阵</h2>
-            <div class="data-table-wrap">
-              <table class="data-table">
-                <thead><tr><th>Dimension</th><th>Values / Groups</th><th>Metrics</th></tr></thead>
-                <tbody>
-                  <tr><td>Model</td><td>Llama / Qwen representative layers</td><td>logits error, perplexity proxy</td></tr>
-                  <tr><td>Phase</td><td>Prefill / Decode</td><td>latency, tokens/s</td></tr>
-                  <tr><td>Quant</td><td>FP16 / W8A8 / FP8 / AWQ</td><td>speed, memory, accuracy</td></tr>
-                  <tr><td>Shape</td><td>M=1/2/4/8/16 + prefill M</td><td>kernel / E2E breakdown</td></tr>
-                  <tr><td>Hardware</td><td>Hopper first; Blackwell later</td><td>portability, best config</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+    style A fill:#e1f5fe
+    style C fill:#e1f5fe
+    style D fill:#e1f5fe
+    style B fill:#fff3e0
+    style E fill:#fff3e0
+    style F fill:#fff3e0
+    style G fill:#fff3e0
+    style I1a fill:#c8e6c9
+    style I1b fill:#c8e6c9
+    style I1c fill:#c8e6c9
+    style J1 fill:#f3e5f5
+    style J2 fill:#f3e5f5
+    style J3 fill:#f3e5f5
+</code></pre>
+<h4>2. 模型加载流程</h4>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant User as 用户脚本
+    participant API as AutoQuantForCausalLM
+    participant Base as BaseModelForCausalLM
+    participant Config as QuantConfig
+    participant Model as 具体模型 (如Qwen3)
+    participant Linear as 自定义Linear
+    participant CUDA as CUDA Kernel
 
-          <section id="learning">
-            <span class="section-kicker">07 / Learning</span>
-            <h2>这个项目要证明的能力</h2>
-            <ul>
-              <li>理解模型量化不是“把 FP16 转成 INT4”，而是一整套 calibration、scale、layout、Kernel 与精度权衡。</li>
-              <li>能够使用 PyTorch C++/CUDA Extension 把自定义 Kernel 接入模型执行。</li>
-              <li>能够区分 Prefill 与 Decode 的性能特征，不用单一 GEMM benchmark 代替推理系统分析。</li>
-              <li>能够建立从单算子到端到端的性能账本，判断优化收益被哪些转换和调度成本抵消。</li>
-            </ul>
-          </section>
+    User-&gt;&gt;API: from_quantized(model_path)
+    API-&gt;&gt;Base: from_quantized(model_path)
 
-          <section id="next">
-            <span class="section-kicker">08 / Next</span>
-            <h2>下一步</h2>
-            <ol class="number-list">
-              <li>完成统一 benchmark harness，并将数据导出为网站可直接读取的 JSON。</li>
-              <li>增加 AWQ dequant + GEMM fusion 与小 M Decode 路径。</li>
-              <li>比较自研 Runtime 与 PyTorch / vLLM 参考路径，明确项目的系统边界。</li>
-              <li>整理为公开仓库，提供最小模型、构建脚本、测试与性能复现说明。</li>
-            </ol>
-          </section>
-        </article>
+    Base-&gt;&gt;Config: 解析 quantization_config
+    Config--&gt;&gt;Base: quant_method (awq/sq/fp8)
 
-        <aside class="detail-sidebar">
-          <div class="sidebar-card"><h3>Contents</h3><nav class="toc"><a href="#goal">项目目标</a><a href="#architecture">Runtime 架构</a><a href="#quantization">量化路径</a><a href="#kernel">Kernel 设计</a><a href="#status">当前进度</a><a href="#benchmark">Benchmark</a><a href="#learning">能力目标</a><a href="#next">下一步</a></nav></div>
-          <div class="sidebar-card"><h3>Status</h3><ul class="sidebar-list"><li><span>Runtime</span><strong>Prototype</strong></li><li><span>W8A8 GEMM</span><strong>Integrated path</strong></li><li><span>E2E data</span><strong>To verify</strong></li><li><span>Public repo</span><strong>Planned</strong></li></ul></div>
-          <a class="button primary" href="../projects.html">返回全部项目</a>
-        </aside>
-      </div>
-    </section>
-  </main>
+    Base-&gt;&gt;Model: 创建空壳模型
+    Model--&gt;&gt;Base: model with nn.Linear
 
-  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="../resume.html">Resume</a></div></div></footer>
-</body>
-</html>
+    Base-&gt;&gt;Linear: 替换 nn.Linear → 自定义Linear
+    Linear-&gt;&gt;CUDA: 编译/加载 CUDA扩展
+    CUDA--&gt;&gt;Linear: .so 扩展模块
+
+    Base-&gt;&gt;Base: load_checkpoint (加载量化权重)
+    Base-&gt;&gt;Base: fuse_layers (QKV融合等)
+    Base-&gt;&gt;Base: model.eval()
+
+    Base--&gt;&gt;User: 可推理的量化模型
+    User-&gt;&gt;Model: model.generate(inputs)
+    Model-&gt;&gt;Linear: forward(x)
+    Linear-&gt;&gt;CUDA: 调用量化kernel
+    CUDA--&gt;&gt;Linear: 量化计算结果
+    Linear--&gt;&gt;Model: output
+    Model--&gt;&gt;User: 生成的token
+</code></pre>
+<h4>3. Attention 后端选择流程</h4>
+<pre><code class="language-mermaid">flowchart TD
+    A[Attention.forward] --&gt; B{seqlen &gt; 1?}
+
+    B --&gt;|Yes: Prefill| C{use_flash_attn?}
+    C --&gt;|Yes| D{FA2 可用?}
+    D --&gt;|Yes| E[flash_attn_func&lt;br/&gt;FA2]
+    D --&gt;|No| F{FA4 可用?}
+    F --&gt;|Yes| G[flash_attn_func&lt;br/&gt;FA4 cute]
+    F --&gt;|No| H[回退到其他后端]
+
+    C --&gt;|No| I{SDPA 可用?}
+    I --&gt;|Yes| J{softcap &gt; 0?}
+    J --&gt;|No| K[PyTorch SDPA&lt;br/&gt;按优先级尝试]
+    J --&gt;|Yes| L[手动matmul&lt;br/&gt;+ softcap]
+
+    I --&gt;|No| M[Torch Attention&lt;br/&gt;手动matmul+softmax]
+
+    B --&gt;|No: Decode| N{FA2 可用?}
+    N --&gt;|Yes| O[flash_attn_with_kvcache&lt;br/&gt;FA2 + KV Cache]
+    N --&gt;|No| P[Torch Attention&lt;br/&gt;读取KV Cache]
+
+    K --&gt; Q{cudnn}
+    K --&gt; R{flash}
+    K --&gt; S{efficient}
+    K --&gt; T{math}
+
+    style E fill:#c8e6c9
+    style G fill:#c8e6c9
+    style O fill:#c8e6c9
+    style K fill:#bbdefb
+    style M fill:#fff9c4
+    style P fill:#fff9c4
+</code></pre>
+<h4>4. 量化方法对比</h4>
+<pre><code class="language-mermaid">graph LR
+    subgraph "AWQ W4A16"
+        A1[Weight: 4-bit&lt;br/&gt;per-group g=128] --&gt; A2[Activation: FP16&lt;br/&gt;不量化]
+        A2 --&gt; A3[Kernel: 手写CUDA&lt;br/&gt;GEMM/GEMV]
+        A3 --&gt; A4[适用: 所有模型&lt;br/&gt;精度损失最小]
+    end
+
+    subgraph "SmoothQuant W8A8"
+        B1[Weight: INT8&lt;br/&gt;per-tensor] --&gt; B2[Activation: INT8&lt;br/&gt;per-tensor]
+        B2 --&gt; B3[Kernel: CUTLASS&lt;br/&gt;INT8 GEMM]
+        B3 --&gt; B4[适用: OPT&lt;br/&gt;Qwen2输出异常]
+    end
+
+    subgraph "FP8 Dynamic"
+        C1[Weight: FP8&lt;br/&gt;per-channel] --&gt; C2[Activation: FP8&lt;br/&gt;per-token 动态]
+        C2 --&gt; C3[Kernel: CUTLASS&lt;br/&gt;FP8 rowwise]
+        C3 --&gt; C4[适用: 所有模型&lt;br/&gt;推理时动态量化]
+    end
+
+    subgraph "FP8 Static"
+        D1[Weight: FP8&lt;br/&gt;per-tensor] --&gt; D2[Activation: FP8&lt;br/&gt;per-tensor 静态]
+        D2 --&gt; D3[Kernel: CUTLASS&lt;br/&gt;FP8 tensorwise]
+        D3 --&gt; D4[适用: 所有模型&lt;br/&gt;需要预计算scale]
+    end
+
+    style A1 fill:#ffcdd2
+    style A2 fill:#ffcdd2
+    style B1 fill:#c8e6c9
+    style B2 fill:#c8e6c9
+    style C1 fill:#bbdefb
+    style C2 fill:#bbdefb
+    style D1 fill:#e1bee7
+    style D2 fill:#e1bee7
+</code></pre>
+<h4>5. 性能加速比</h4>
+<pre><code class="language-mermaid">xychart-beta
+    title "LLMQRT vs Baseline 延迟对比 (ms)"
+    x-axis ["AWQ Prefill", "SQ Prefill", "SQ Decode", "FP8 Dyn Prefill", "FP8 Dyn Decode"]
+    y-axis "延迟 (ms)" 0 --&gt; 200
+    bar [183.05, 103.10, 100.75, 80.54, 76.07]
+    bar [30.22, 49.07, 52.86, 43.97, 38.41]
+</code></pre>
+<h4>6. 目录结构与数据流</h4>
+<pre><code class="language-mermaid">graph TD
+    subgraph "输入"
+        M[量化模型目录&lt;br/&gt;config.json + weights]
+        T[Tokenizer]
+        P[用户Prompt]
+    end
+
+    subgraph "runtime_refact/core"
+        API[AutoQuantForCausalLM] --&gt; BASE[BaseModelForCausalLM]
+        BASE --&gt; CFG[QuantConfig]
+    end
+
+    subgraph "runtime_refact/nn_models"
+        BASE --&gt; MOD[具体模型类&lt;br/&gt;Qwen3/LLaMA/OPT]
+        MOD --&gt; LIN[自定义Linear&lt;br/&gt;AWQ/SQ/FP8]
+        MOD --&gt; ATTN[Attention&lt;br/&gt;FA2/FA4/SDPA]
+        MOD --&gt; NORM[RMSNorm]
+        MOD --&gt; KV[KV Cache]
+    end
+
+    subgraph "runtime_refact/csrc"
+        LIN --&gt; CUDA_AWQ[awq/kernel.cu]
+        LIN --&gt; CUDA_SQ[sq_gemm.cu]
+        LIN --&gt; CUDA_FP8[fp8/*.cu]
+    end
+
+    subgraph "输出"
+        MOD --&gt; GEN[generate&lt;br/&gt;HF TextStreamer]
+        GEN --&gt; OUT[生成文本]
+    end
+
+    M --&gt; API
+    T --&gt; API
+    P --&gt; GEN
+
+    style M fill:#e8f5e9
+    style T fill:#e8f5e9
+    style P fill:#e8f5e9
+    style OUT fill:#fff3e0
+    style CUDA_AWQ fill:#f3e5f5
+    style CUDA_SQ fill:#f3e5f5
+    style CUDA_FP8 fill:#f3e5f5
+</code></pre></section><section class="evidence-section"><h2>架构适配与测试方法</h2>
+<h4>问题与目标</h4>
+<p>在新一代 GPU 上验证 LLM Runtime 的量化推理路径，并处理架构适配、kernel 正确性、张量并行和性能测量问题。目标是建立可回退、可验证、可移植的推理工作流，而非披露特定部署环境。</p>
+<h4>关键进展</h4>
+<ol>
+<li>建立运行环境自检：确认驱动、CUDA、框架、编译器和依赖版本兼容。</li>
+<li>修复手写量化 kernel 在目标架构上的越界/非法访问风险，并用内存检查和小样本对比验证。</li>
+<li>核对量化权重 schema、打包布局、零点/scale 处理和 tokenizer 输入，避免把格式不兼容误判为算子错误。</li>
+<li>建立单卡与张量并行两条验证路径，分别检查输出可读性、数值容差、通信聚合和显存行为。</li>
+<li>为 attention 后端和构建加速工具增加能力检测与回退逻辑，降低运行环境依赖。</li>
+</ol>
+<h4>测试方法</h4>
+<ul>
+<li>先以小模型、小输入和短输出完成正确性 smoke；</li>
+<li>再增加上下文长度、生成长度、batch 与并行度；</li>
+<li>性能测量包含预热、重复运行和稳定统计，且与同版本 baseline 对照；</li>
+<li>对失败案例按加载、量化、kernel、通信和调度分层定位。</li>
+</ul>
+<h4>公开边界</h4>
+<p>不收录专有模型清单、权重大小、路径、运行命令、环境目录、GPU 节点和原始日志。本文中的结论仅描述已验证方法，具体性能需在公开或授权环境中重新测量。</p></section>
+    <section class="callout warning"><strong>结论边界</strong><p>公开页面强调架构、正确性与适配方法；任何延迟或加速结论都需要在同一模型、版本、输入和 baseline 下重新测量，不能由单个 kernel 数字外推端到端收益。</p></section>
+  </article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Evidence Standard</h3><ul class="sidebar-list"><li><span>Problem</span><strong>可复现定义</strong></li><li><span>Method</span><strong>控制变量 / Oracle</strong></li><li><span>Result</span><strong>同口径对照</strong></li><li><span>Boundary</span><strong>不做过度外推</strong></li></ul></div><a class="button primary" href="../projects.html">返回全部项目</a><a class="button" href="../writing.html">技术文章与发布计划</a></aside></div></section>
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng. Evidence-led AI Infra portfolio.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">知乎</a><a href="../resume.html">Resume</a></div></div></footer></body></html>

@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="将三套可见光无人机数据统一转换为 YOLO / COCO，构建环境自检、极小子集 smoke、多 GPU 调度、结果汇总与恢复机制；重点不是只报一个 mAP，而是让大规模实验可执行、可追溯、可恢复。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/drone-detection-pipeline.html"><title>ICS6201 无人机检测：171K 样本数据工程与多 GPU 实验流水线 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<body data-page="projects" class="evidence-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../index.html" aria-label="返回首页"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+    <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="detail-hero"><div class="shell"><div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>ICS6201 无人机检测：171K 样本数据工程与多 GPU 实验流水线</span></div><span class="eyebrow reveal">ML Systems · Data Pipeline · Multi-GPU Experiment</span><h1 class="reveal"><span class="gradient-text">ICS6201 无人机检测：171K 样本数据工程与多 GPU 实验流水线</span></h1><p class="detail-lead reveal">将三套可见光无人机数据统一转换为 YOLO / COCO，构建环境自检、极小子集 smoke、多 GPU 调度、结果汇总与恢复机制；重点不是只报一个 mAP，而是让大规模实验可执行、可追溯、可恢复。</p><div class="detail-meta-grid reveal"><div class="detail-meta"><span>Role</span><strong>Pipeline, Data Engineering &amp; Experiment Operations</strong></div><div class="detail-meta"><span>Environment</span><strong>8× H200 · Shared Storage · 3 Datasets</strong></div><div class="detail-meta"><span>Stack</span><strong>Ultralytics · Detectron2 · Python · ffmpeg</strong></div><div class="detail-meta"><span>Status</span><strong>课程项目 · 核心 6 个训练任务完成</strong></div></div></div></section>
+  <section class="section compact section-line"><div class="shell detail-layout"><article class="detail-content">
+    <section><span class="section-kicker">Evidence Snapshot / 证据快照</span><h2>用可复核的数字描述贡献，也明确数字不能证明什么。</h2><div class="metric-grid"><div class="metric-card"><strong>171,568</strong><span>统一样本总量</span><small>3 datasets</small></div><div class="metric-card"><strong>18 days → 10–20 min</strong><span>ARD-MAV 抽帧</span><small>批量 ffmpeg</small></div><div class="metric-card"><strong>14 / 14</strong><span>端到端 smoke</span><small>约 5m07s</small></div><div class="metric-card"><strong>0.67682 / 64.566</strong><span>RT-DETR / Faster R-CNN 均值</span><small>不同原生指标</small></div></div></section>
+    <section><span class="section-kicker">System / 系统链路</span><h2>从问题到验证的工程闭环</h2><div class="architecture"><div class="arch-node"><strong>Raw Datasets</strong><span>VOC + video/XML</span></div><div class="arch-node"><strong>Preparation</strong><span>YOLO + COCO + fast frames</span></div><div class="arch-node"><strong>Validation</strong><span>14-gate smoke</span></div><div class="arch-node"><strong>Scheduler</strong><span>GPU worker launcher</span></div><div class="arch-node"><strong>Evidence</strong><span>3 seeds + light metrics</span></div></div></section>
+    <figure class="project-figure"><img src="../assets/projects/drone/primary-completion.png" alt="RT-DETR-L 与 Faster R-CNN 三随机种子核心任务完成情况" loading="lazy"><figcaption>RT-DETR-L 与 Faster R-CNN 三随机种子核心任务完成情况 · 公开脱敏图</figcaption></figure>
+    <section class="source-banner"><div><span class="section-kicker">Public Sources / 公开证据</span><h2>以下正文来自 ICS6201 <code>me</code> 分支的脱敏文档。</h2><p>内部仓库、节点、镜像、模型路径、运行标识、凭据与原始日志均不在页面中。公开数字保留原文定义和适用边界。</p></div><div class="button-row"><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/ics6201/PROJECT_SUMMARY.md" target="_blank" rel="noopener noreferrer">项目完整总结 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/ics6201/TRAINING_RECOVERY_PRIORITY_PLAN_2026-06-05.md" target="_blank" rel="noopener noreferrer">恢复优先级计划 ↗</a></div></section>
+    <section class="evidence-section"><h2>数据、脚本、验证和核心结果</h2>
+<h4>项目概述</h4>
+<p><strong>目标</strong>：用 6 种目标检测模型在 3 套无人机数据集上进行对比实验，找出最适合无人机黑飞检测的方案。</p>
+<p><strong>基本信息</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>详情</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务</td>
+<td>单类（drone）目标检测</td>
+</tr>
+<tr>
+<td>检测类别</td>
+<td><code>0: drone</code></td>
+</tr>
+<tr>
+<td>模型数量</td>
+<td>6 个（YOLOv8n, YOLOv10n, YOLO11m, RT-DETR-L, Faster R-CNN R50-FPN, DDW-YOLO）</td>
+</tr>
+<tr>
+<td>每个模型运行</td>
+<td>3 个随机种子（seed=1,2,3），共计 18 次训练</td>
+</tr>
+<tr>
+<td>服务器</td>
+<td>CPU: <code>[redacted]</code>，GPU: <code>[redacted]</code></td>
+</tr>
+<tr>
+<td>GPU</td>
+<td>8× NVIDIA H200 (141GB HBM3e)</td>
+</tr>
+<tr>
+<td>存储</td>
+<td>GPFS 共享存储 <code>[redacted]</code>，两台机器相同路径</td>
+</tr>
+<tr>
+<td>项目路径</td>
+<td><code>[redacted-path]/ICS6201/</code></td>
+</tr>
+<tr>
+<td>当前环境</td>
+<td>conda env <code>fly</code>（PyTorch 2.5.1+cu121 + Ultralytics + Detectron2）</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h4>一、数据集</h4>
+<h4>数据来源</h4>
+<table>
+<thead>
+<tr>
+<th>数据集</th>
+<th>格式</th>
+<th>train</th>
+<th>val</th>
+<th>test</th>
+<th>合计</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DUT Anti-UAV Detection</td>
+<td>VOC XML</td>
+<td>5,200</td>
+<td>2,600</td>
+<td>2,200</td>
+<td>10,000</td>
+</tr>
+<tr>
+<td>DroneDetectionDataset</td>
+<td>VOC XML</td>
+<td>46,301</td>
+<td>5,145</td>
+<td>2,625</td>
+<td>54,071</td>
+</tr>
+<tr>
+<td>ARD-MAV</td>
+<td>视频+XML</td>
+<td>85,997</td>
+<td>10,749</td>
+<td>10,751</td>
+<td>107,497</td>
+</tr>
+<tr>
+<td><strong>总计</strong></td>
+<td>YOLO</td>
+<td><strong>137,498</strong></td>
+<td><strong>18,494</strong></td>
+<td><strong>15,576</strong></td>
+<td><strong>171,568</strong></td>
+</tr>
+</tbody>
+</table>
+<h4>数据准备流程</h4>
+<ol>
+<li><strong>准备原始 zip</strong> → 按数据集授权方式下载到本地 <code>raw_zips/</code>；数据不进入 Git</li>
+<li><strong>合并分卷</strong> → <code>cat ARD-MAV_Glad.zip.part-* &gt; ARD-MAV_Glad.zip</code></li>
+<li><strong>VOC→YOLO 转换</strong> → <code>scripts/prepare_rgb_yolo.py</code>（DUT + DroneDet）</li>
+<li><strong>ARD-MAV 快速抽帧</strong> → <code>scripts/prepare_ard_mav_fast.py</code>（60 个视频一次性批量导出帧，10-20 分钟）</li>
+<li><strong>COCO 格式</strong> → <code>scripts/prepare_rgb_coco.py</code>（给 Detectron2 用）</li>
+</ol>
+<h4>关键经验</h4>
+<ul>
+<li>ARD-MAV 原始脚本逐帧调用 ffmpeg（107K 次），预估 18 天 → 改为每视频一次性全帧导出，<strong>10-20 分钟完成</strong></li>
+<li>GPFS 共享存储 I/O 延迟高，大量小文件 <code>rmtree</code> 可能超时 → 数据准备避免 <code>--clear</code></li>
+<li><code>ls ardmav_*</code> 匹配 86K 文件会参数溢出返回 0 → 用 Python glob 或 find 统计</li>
+</ul>
+<hr/>
+<h4>二、环境搭建与踩坑</h4>
+<h4>Conda 环境安装（CPU 机器有外网，安装到共享存储）</h4>
+<pre><code class="language-bash">conda create -n fly python=3.12 -y
+conda activate fly
+PIP_CONSTRAINT="" pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+PIP_CONSTRAINT="" pip install ultralytics pyyaml
+PIP_CONSTRAINT="" pip install opencv-python-headless  # GPU 无 libGL
+PIP_CONSTRAINT="" pip install --no-build-isolation 'git+https://github.com/facebookresearch/detectron2.git'
+</code></pre>
+<p>激活：<code>source [redacted-path]/ICS6201/activate_fly.sh</code></p>
+<h4>踩坑记录</h4>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>libGL.so.1</code> 缺失</td>
+<td>GPU 机器无 GUI 库</td>
+<td>换 <code>opencv-python-headless</code></td>
+</tr>
+<tr>
+<td>pip constraint 冲突</td>
+<td>NVIDIA 内部 constraint 锁定 torch 版本</td>
+<td><code>PIP_CONSTRAINT=""</code> 覆盖</td>
+</tr>
+<tr>
+<td>detectron2 安装失败</td>
+<td>pip 隔离环境无 torch</td>
+<td><code>--no-build-isolation</code></td>
+</tr>
+<tr>
+<td>SSH <code>Permission denied</code></td>
+<td>无密钥</td>
+<td>CPU 端生成 ed25519 密钥，通过共享存储加到 GPU <code>authorized_keys</code></td>
+</tr>
+<tr>
+<td>Faster R-CNN 权重下载失败</td>
+<td>GPU 机器无外网</td>
+<td>CPU 端预下载 <code>pretrained_weights/faster_rcnn_R_50_FPN_3x.pkl</code>（160MB）</td>
+</tr>
+<tr>
+<td>Faster R-CNN 训练 NaN</td>
+<td>batch=4 太小梯度不稳定</td>
+<td>batch 改 32</td>
+</tr>
+<tr>
+<td>DDW-YOLO 训练报错</td>
+<td>Ultralytics Muon optimizer 要求 2D 参数，DDW 自定义模块 ECA/BiFPN 有 1D/3D 参数</td>
+<td>改用 <code>AdamW</code> 或 <code>SGD</code> optimizer</td>
+</tr>
+<tr>
+<td><code>CUDA_VISIBLE_DEVICES</code> 未生效</td>
+<td>PyTorch 2.5.1 CUDA 12.1 与系统 CUDA 13.1 驱动版本不一致</td>
+<td>改用 conda env <code>ai</code>（PyTorch 2.11 CUDA 13.1）</td>
+</tr>
+<tr>
+<td><code>master.sh</code> 验证失败后直接退出</td>
+<td><code>set -euo pipefail</code> + 验证非零退出码</td>
+<td>关键命令前加 <code>set +e</code>，后恢复 <code>set -e</code></td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h4>三、脚本体系</h4>
+<h4>新建脚本</h4>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>功能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scripts/auto_config.py</code></td>
+<td>自动检测可用 GPU 数量、型号、显存</td>
+</tr>
+<tr>
+<td><code>scripts/parallel_launcher.py</code></td>
+<td>多 GPU 并行训练启动器，将任务分配到不同卡</td>
+</tr>
+<tr>
+<td><code>scripts/validate_pipeline.py</code></td>
+<td>极小子集全链路验证（环境/数据/训练/keep_alive）</td>
+</tr>
+<tr>
+<td><code>scripts/summarize_results.py</code></td>
+<td>从 state 文件和 runs 目录生成对比报告</td>
+</tr>
+<tr>
+<td><code>scripts/prepare_ard_mav_fast.py</code></td>
+<td>ARD-MAV 快速批处理（替代逐帧 ffmpeg）</td>
+</tr>
+<tr>
+<td><code>master.sh</code></td>
+<td>一键执行入口</td>
+</tr>
+<tr>
+<td><code>activate_fly.sh</code></td>
+<td>conda 环境激活</td>
+</tr>
+</tbody>
+</table>
+<h4>master.sh 执行流程</h4>
+<pre><code>STEP 1: 环境检查（Python 版本、GPU 检测、依赖导入）
+STEP 2: 数据准备（YAML 生成、COCO 标注）
+STEP 3: 冒烟验证（极小子集并行训练，输出 validation_report.md）
+STEP 4: 正式训练（parallel_launcher.py，18 任务分配到 GPU）
+STEP 5: 结果汇总（summarize_results.py，输出 training_report.md）
+STEP 6: Keep Alive（启动 GPU 防回收守护进程）
+</code></pre>
+<h4>启动命令</h4>
+<pre><code class="language-bash">#### 完整流程（留 GPU 0 给其他任务）
+./master.sh --gpus 1,2,3,4,5,6,7
+
+#### 仅验证，跳过正式训练
+./master.sh --gpus 1,2,3,4,5,6,7 --skip-train
+</code></pre>
+<hr/>
+<h4>四、验证结果</h4>
+<p>最终快速验证：<strong>14/14 全部通过</strong>，总耗时约 5 分钟。</p>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>结果</th>
+<th>耗时</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8 GPU 检测</td>
+<td>PASS</td>
+<td>5s</td>
+</tr>
+<tr>
+<td>GPU 选择（物理 GPU 1-7）</td>
+<td>PASS</td>
+<td>0s</td>
+</tr>
+<tr>
+<td>环境导入</td>
+<td>PASS</td>
+<td>0s</td>
+</tr>
+<tr>
+<td>数据准备</td>
+<td>PASS</td>
+<td>0s</td>
+</tr>
+<tr>
+<td>YOLOv8n 训练</td>
+<td>PASS</td>
+<td>39s</td>
+</tr>
+<tr>
+<td>YOLOv10n 训练</td>
+<td>PASS</td>
+<td>38s</td>
+</tr>
+<tr>
+<td>YOLO11m 训练</td>
+<td>PASS</td>
+<td>40s</td>
+</tr>
+<tr>
+<td>DDW-YOLO 训练</td>
+<td>PASS</td>
+<td>44s</td>
+</tr>
+<tr>
+<td>RT-DETR-L 训练</td>
+<td>PASS</td>
+<td>56s</td>
+</tr>
+<tr>
+<td>Faster R-CNN 训练</td>
+<td>PASS</td>
+<td>4min05s</td>
+</tr>
+<tr>
+<td>多卡并行</td>
+<td>PASS</td>
+<td>0s</td>
+</tr>
+<tr>
+<td>Keep Alive</td>
+<td>PASS</td>
+<td>skipped</td>
+</tr>
+<tr>
+<td>端到端计时</td>
+<td>PASS</td>
+<td>5min07s</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h4>五、训练结果与当前状态（2026-06-09 更新）</h4>
+<h4>核心任务完成情况</h4>
+<p>本轮优先保证的核心任务为 <strong>RT-DETR-L</strong> 和 <strong>Faster R-CNN Detectron2</strong>，每个模型 3 个 seed。截止 2026-06-09，6 个核心训练任务已全部完成。2026-07-15 仓库瘦身后不再保存权重和完整逐步日志，只保留结果摘要、RT-DETR <code>results.csv</code> 和提取后的轻量指标表。</p>
+<table>
+<thead>
+<tr>
+<th>核心任务</th>
+<th>状态</th>
+<th>最终进度</th>
+<th>最终指标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>rtdetr_seed1</td>
+<td>DONE</td>
+<td>epoch 120</td>
+<td>mAP50-95 = <strong>0.67942</strong></td>
+</tr>
+<tr>
+<td>rtdetr_seed2</td>
+<td>DONE</td>
+<td>epoch 120</td>
+<td>mAP50-95 = <strong>0.67529</strong></td>
+</tr>
+<tr>
+<td>rtdetr_seed3</td>
+<td>DONE</td>
+<td>epoch 120</td>
+<td>mAP50-95 = <strong>0.67576</strong></td>
+</tr>
+<tr>
+<td>faster_rcnn_seed1</td>
+<td>DONE</td>
+<td>iter = <strong>2062560/2062560</strong></td>
+<td>bbox/AP = <strong>64.6024</strong></td>
+</tr>
+<tr>
+<td>faster_rcnn_seed2</td>
+<td>DONE</td>
+<td>iter = <strong>2062560/2062560</strong></td>
+<td>bbox/AP = <strong>64.6664</strong></td>
+</tr>
+<tr>
+<td>faster_rcnn_seed3</td>
+<td>DONE</td>
+<td>iter = <strong>2062560/2062560</strong></td>
+<td>bbox/AP = <strong>64.4290</strong></td>
+</tr>
+</tbody>
+</table>
+<p>完整轻量指标见 <code>assets/ics6201_final_metrics_2026-06-07.csv</code>。RT-DETR-L 的 mAP50-95 均值为 <strong>0.67682</strong>，Faster R-CNN 的原生 Detectron2 bbox/AP 均值为 <strong>64.5660</strong>。</p>
+<h4>非核心任务历史状态</h4>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>yolo11_seed1</td>
+<td>DONE</td>
+<td>曾完成；仓库瘦身后不保留输出和权重</td>
+</tr>
+<tr>
+<td>yolo11_seed2</td>
+<td>PARTIAL</td>
+<td>旧调度逻辑下 OOM 后中断；checkpoint 已删除，如需补跑应重新训练</td>
+</tr>
+<tr>
+<td>yolo11_seed3</td>
+<td>PENDING</td>
+<td>尚未正式启动</td>
+</tr>
+<tr>
+<td>ddw_yolo_seed1-3</td>
+<td>PENDING</td>
+<td>尚未正式启动</td>
+</tr>
+<tr>
+<td>yolov10_seed1-3</td>
+<td>PENDING</td>
+<td>尚未正式启动</td>
+</tr>
+<tr>
+<td>yolov8_seed1-3</td>
+<td>PENDING</td>
+<td>尚未正式启动</td>
+</tr>
+</tbody>
+</table>
+<h4>仓库瘦身后的重跑策略</h4>
+<p>2026-06-09 的 manifest/checkpoint 恢复方案属于历史执行记录。2026-07-15 清理后，仓库不再包含原始数据和 checkpoint，因此不能直接从旧 <code>last.pt</code> 恢复。如需补跑 secondary，应重新准备数据与初始权重，再使用新版 per-GPU worker launcher 从头训练。</p>
+<p>数据准备完成后可先执行 dry-run，检查任务与 GPU 分配：</p>
+<pre><code class="language-bash">cd [redacted-path]/ICS6201
+source [redacted-path]/miniconda3/etc/profile.d/conda.sh
+conda activate fly
+
+python scripts/parallel_launcher.py \
+  --mode formal \
+  --data configs/drone_rgb_abs.yaml \
+  --gpus 1,2,3,4,5,6,7 \
+  --target secondary \
+  --dry-run
+</code></pre>
+<p>确认调度结果无误后，去掉 <code>--dry-run</code> 才会开始训练。只有重新产生 checkpoint 后，<code>recovery_manifest.py</code> 与 <code>--resume-existing</code> 才能再次用于中断恢复。</p>
+<h4>GPU 使用说明</h4>
+<pre><code class="language-bash">#### GPU 0 完全空闲，留给其他任务
+CUDA_VISIBLE_DEVICES=0 python your_script.py
+</code></pre>
+<hr/>
+<h4>六、文件索引</h4>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>master.sh</code></td>
+<td>一键执行脚本</td>
+</tr>
+<tr>
+<td><code>activate_fly.sh</code></td>
+<td>环境激活</td>
+</tr>
+<tr>
+<td><code>DEVELOPMENT_PLAN.md</code></td>
+<td>开发计划</td>
+</tr>
+<tr>
+<td><code>EXECUTION_LOG.md</code></td>
+<td>详细执行记录</td>
+</tr>
+<tr>
+<td><code>validation_report.md</code></td>
+<td>验证报告</td>
+</tr>
+<tr>
+<td><code>training_report.md</code></td>
+<td>训练结果（训练完成后生成）</td>
+</tr>
+<tr>
+<td><code>scripts/recovery_manifest.py</code></td>
+<td>恢复训练 manifest 生成，识别 complete/partial/pending</td>
+</tr>
+<tr>
+<td><code>scripts/auto_config.py</code></td>
+<td>GPU 检测</td>
+</tr>
+<tr>
+<td><code>scripts/parallel_launcher.py</code></td>
+<td>多卡并行训练（含进度监控）</td>
+</tr>
+<tr>
+<td><code>scripts/validate_pipeline.py</code></td>
+<td>子集验证</td>
+</tr>
+<tr>
+<td><code>scripts/summarize_results.py</code></td>
+<td>结果汇总</td>
+</tr>
+<tr>
+<td><code>scripts/prepare_ard_mav_fast.py</code></td>
+<td>ARD-MAV 快速抽帧</td>
+</tr>
+<tr>
+<td><code>scripts/prepare_rgb_yolo.py</code></td>
+<td>VOC→YOLO 数据准备</td>
+</tr>
+<tr>
+<td><code>scripts/prepare_rgb_coco.py</code></td>
+<td>YOLO→COCO 转换</td>
+</tr>
+<tr>
+<td><code>scripts/train_detectron2_fasterrcnn.py</code></td>
+<td>Faster R-CNN 训练</td>
+</tr>
+<tr>
+<td><code>train_scripts/run_ultralytics_task.py</code></td>
+<td>单次 Ultralytics 训练</td>
+</tr>
+<tr>
+<td><code>train_scripts/ddw_modules.py</code></td>
+<td>DDW-YOLO 自定义模块（ECA + BiFPN）</td>
+</tr>
+<tr>
+<td><code>models/ddw_yolo11m_p2_bifpn_eca.yaml</code></td>
+<td>DDW-YOLO 模型定义</td>
+</tr>
+<tr>
+<td><code>configs/drone_rgb_abs.yaml</code></td>
+<td>数据集配置（绝对路径，自动生成）</td>
+</tr>
+<tr>
+<td><code>assets/ics6201_final_metrics_2026-06-07.csv</code></td>
+<td>从最终日志提取的 6 个核心任务指标</td>
+</tr>
+<tr>
+<td><code>pretrained_weights/</code></td>
+<td>本地预训练权重目录，不入库</td>
+</tr>
+<tr>
+<td><code>raw_zips/</code></td>
+<td>本地原始数据目录，不入库</td>
+</tr>
+<tr>
+<td><code>yolo/</code></td>
+<td>本地 YOLO 派生数据目录，不入库</td>
+</tr>
+<tr>
+<td><code>coco/</code></td>
+<td>本地 COCO 派生数据目录，不入库</td>
+</tr>
+<tr>
+<td><code>logs/</code></td>
+<td>本地运行日志，不入库</td>
+</tr>
+<tr>
+<td><code>runs_formal/</code></td>
+<td>仅保留已跟踪的小型结果表；权重不入库</td>
+</tr>
+</tbody>
+</table></section><section class="evidence-section"><h2>中断恢复与资源调度</h2>
+<p><strong>日期</strong>: 2026-06-05<br/>
+<strong>目标</strong>: 在不破坏当前已产出 checkpoint / 日志 / 指标的前提下，暂停旧 launcher 的继续派发能力，修复调度逻辑，并把正式训练目标调整为优先保证 <code>rt-detr-l</code> 与 <code>faster_rcnn_detectron2</code> 两类任务完成。</p>
+<h4>0. 当前判断</h4>
+<p>当前正式训练已经跑起来，但 <code>parallel_launcher.py</code> 的调度逻辑仍有结构性风险：18 个任务在创建时被预先绑定到 GPU，随后用全局线程池运行。这样某个短任务先结束后，线程池会启动下一个排队任务，但该任务可能已经被预分配到一张仍在训练重任务的 GPU 上，从而触发显存冲突或 OOM。</p>
+<p>截至最近一次检查，第一批 7 个任务仍在运行：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th style="text-align: right;">GPU</th>
+<th>优先级</th>
+<th>处理策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rtdetr_seed1</code></td>
+<td style="text-align: right;">1</td>
+<td>Primary</td>
+<td>保留，继续跑或从 checkpoint 恢复</td>
+</tr>
+<tr>
+<td><code>rtdetr_seed2</code></td>
+<td style="text-align: right;">2</td>
+<td>Primary</td>
+<td>保留，继续跑或从 checkpoint 恢复</td>
+</tr>
+<tr>
+<td><code>rtdetr_seed3</code></td>
+<td style="text-align: right;">3</td>
+<td>Primary</td>
+<td>保留，继续跑或从 checkpoint 恢复</td>
+</tr>
+<tr>
+<td><code>faster_rcnn_seed1</code></td>
+<td style="text-align: right;">4</td>
+<td>Primary</td>
+<td>保留，继续跑或从 checkpoint 恢复</td>
+</tr>
+<tr>
+<td><code>faster_rcnn_seed2</code></td>
+<td style="text-align: right;">5</td>
+<td>Primary</td>
+<td>保留，继续跑或从 checkpoint 恢复</td>
+</tr>
+<tr>
+<td><code>faster_rcnn_seed3</code></td>
+<td style="text-align: right;">6</td>
+<td>Primary</td>
+<td>保留，继续跑或从 checkpoint 恢复</td>
+</tr>
+<tr>
+<td><code>yolo11_seed1</code></td>
+<td style="text-align: right;">7</td>
+<td>Secondary</td>
+<td>不主动杀；结束后不再继续派发 secondary</td>
+</tr>
+</tbody>
+</table>
+<p>核心原则：</p>
+<ul>
+<li>不移动正在被写入的 <code>runs_formal/</code> 子目录。</li>
+<li>不删除任何旧日志、旧 checkpoint、旧 <code>results.csv</code>。</li>
+<li>先阻止旧 launcher 启动新任务，再修脚本。</li>
+<li>新恢复脚本默认只保证 primary 任务：<code>rt-detr-l</code> 与 <code>faster_rcnn_detectron2</code>。</li>
+<li>Secondary 任务，包括 <code>yolo11</code>、<code>ddw_yolo</code>、<code>yolov10</code>、<code>yolov8</code>，等 primary 完成后再跑。</li>
+</ul>
+<p>下图给出本次恢复动作的收益/风险和推荐执行阶段。</p>
+<h4>1. 立即止血计划</h4>
+<h4>1.1 推荐暂停对象</h4>
+<p>推荐只暂停旧 launcher，不暂停已经启动的 7 个训练子进程。</p>
+<p>原因：</p>
+<ul>
+<li>训练子进程继续占用 GPU 并写 checkpoint，已有训练进度不会白费。</li>
+<li>launcher 被暂停后，不会继续启动 <code>yolo11_seed2</code>、<code>ddw_yolo_*</code> 等后续任务。</li>
+<li>避免 <code>yolo11_seed1</code> 结束后把 <code>yolo11_seed2</code> 错误派发到 GPU1。</li>
+</ul>
+<p>执行方式：</p>
+<pre><code class="language-bash">cd [redacted-path]/ICS6201
+
+LAUNCHER_PID=$(pgrep -f 'scripts/parallel_launcher.py --mode formal')
+echo "launcher=${LAUNCHER_PID}"
+kill -STOP "${LAUNCHER_PID}"
+ps -p "${LAUNCHER_PID}" -o pid,stat,etime,args
+</code></pre>
+<p>验收标准：</p>
+<ul>
+<li><code>parallel_launcher.py</code> 的 <code>STAT</code> 中出现 <code>T</code>。</li>
+<li><code>run_ultralytics_task.py</code> 和 <code>train_detectron2_fasterrcnn.py</code> 子进程仍在。</li>
+<li>GPU1-7 仍有训练负载，GPU0 仍为空。</li>
+<li><code>logs/formal/*.log</code> 仍在更新，或至少子进程仍在 GPU 上运行。</li>
+</ul>
+<h4>1.2 不推荐的暂停方式</h4>
+<p>不建议直接 <code>kill -STOP</code> 7 个训练子进程，除非必须维护机器或释放资源。</p>
+<p>风险：</p>
+<ul>
+<li>训练完全停止，GPU 仍可能被进程占住。</li>
+<li>长时间 STOP 后，日志、进程状态、父子进程关系会更难判断。</li>
+<li>如果后续误杀子进程，可能丢失最后一次 checkpoint 之后的进度。</li>
+</ul>
+<p>如果必须全暂停，必须先保存进程快照：</p>
+<pre><code class="language-bash">TS=$(date +%Y%m%d_%H%M%S)
+mkdir -p logs/recovery_${TS}
+
+ps -eo pid,ppid,stat,etime,args \
+  | grep -E 'master.sh|parallel_launcher.py|run_ultralytics_task.py|train_detectron2_fasterrcnn.py' \
+  | grep -v grep \
+  | tee logs/recovery_${TS}/process_snapshot.txt
+
+nvidia-smi \
+  | tee logs/recovery_${TS}/nvidia_smi_snapshot.txt
+</code></pre>
+<h4>2. 数据保护计划</h4>
+<h4>2.1 活跃目录不搬动</h4>
+<p>当前活跃输出目录包括：</p>
+<ul>
+<li><code>logs/master_*.log</code></li>
+<li><code>logs/formal/*.log</code></li>
+<li><code>logs/state_formal.json</code></li>
+<li><code>runs_formal/*</code></li>
+<li><code>runs_detectron2/*</code></li>
+</ul>
+<p>在训练子进程仍在写入时，不移动、不重命名这些目录。尤其不能移动 <code>runs_formal/rtdetr_seed*-2</code>、<code>runs_formal/yolo11_seed1-2</code> 这类 Ultralytics 自动生成目录，否则正在运行的进程可能继续写旧文件句柄，后续恢复也会混乱。</p>
+<h4>2.2 生成恢复 manifest</h4>
+<p>新增一个只读扫描脚本或 launcher 子命令，生成 <code>logs/recovery_manifest_&lt;timestamp&gt;.json</code>，记录每个任务的真实进度：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run_key</code></td>
+<td>例如 <code>rtdetr_seed1</code></td>
+</tr>
+<tr>
+<td><code>model_family</code></td>
+<td><code>rtdetr</code> / <code>faster_rcnn</code> / <code>yolo11</code></td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td><code>primary</code> / <code>secondary</code></td>
+</tr>
+<tr>
+<td><code>candidate_dirs</code></td>
+<td>所有可能的输出目录，例如 <code>rtdetr_seed1</code>、<code>rtdetr_seed1-2</code></td>
+</tr>
+<tr>
+<td><code>canonical_dir</code></td>
+<td>选中的最佳恢复目录</td>
+</tr>
+<tr>
+<td><code>last_epoch_or_iter</code></td>
+<td>当前训练进度</td>
+</tr>
+<tr>
+<td><code>target_epoch_or_iter</code></td>
+<td>目标训练进度</td>
+</tr>
+<tr>
+<td><code>last_checkpoint</code></td>
+<td>可恢复 checkpoint 路径</td>
+</tr>
+<tr>
+<td><code>best_checkpoint</code></td>
+<td>当前最佳 checkpoint 路径</td>
+</tr>
+<tr>
+<td><code>complete</code></td>
+<td>是否已经完整完成</td>
+</tr>
+<tr>
+<td><code>resume_allowed</code></td>
+<td>是否允许恢复</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>选择该目录/状态的原因</td>
+</tr>
+</tbody>
+</table>
+<p>Canonical 目录选择规则：</p>
+<ol>
+<li>优先选择进度最高的目录。</li>
+<li>进度相同则选择 <code>mtime</code> 最新的目录。</li>
+<li>必须存在可用 checkpoint，否则只能作为指标参考，不能作为恢复源。</li>
+<li>不删除非 canonical 目录，只在 manifest 里标记 <code>superseded</code>。</li>
+</ol>
+<h4>2.3 完成判定规则</h4>
+<p><code>rt-detr-l</code> / Ultralytics：</p>
+<ul>
+<li><code>results.csv</code> 行数达到目标 epoch，或最后 epoch 达到目标。</li>
+<li><code>weights/last.pt</code> 存在。</li>
+<li><code>weights/best.pt</code> 存在则记录为最终评估候选。</li>
+<li>如果不完整但 <code>weights/last.pt</code> 存在，进入 resume 队列。</li>
+</ul>
+<p><code>faster_rcnn_detectron2</code>：</p>
+<ul>
+<li><code>model_final.pth</code> 存在，或 <code>metrics.json</code> 中 <code>iteration</code> 达到目标 <code>max_iter</code>。</li>
+<li><code>last_checkpoint</code> 存在则可恢复。</li>
+<li><code>metrics.json</code> 记录的 <code>iteration</code> 低于目标时进入 resume 队列。</li>
+</ul>
+<h4>3. 调度器修改计划</h4>
+<h4>3.1 修复目标</h4>
+<p>把旧的“任务预绑定 GPU + 全局线程池”改成“每张 GPU 一个 worker 队列”。</p>
+<p>新调度语义：</p>
+<pre><code class="language-text">GPU1 worker: 取任务 -&gt; 绑定 GPU1 -&gt; 跑完 -&gt; 再取下一个任务
+GPU2 worker: 取任务 -&gt; 绑定 GPU2 -&gt; 跑完 -&gt; 再取下一个任务
+...
+GPU7 worker: 取任务 -&gt; 绑定 GPU7 -&gt; 跑完 -&gt; 再取下一个任务
+</code></pre>
+<p>这样哪张卡空出来，哪张卡继续拿下一项任务。任务不再提前固定到未来可能仍忙的 GPU。</p>
+<h4>3.2 新增参数</h4>
+<p><code>scripts/parallel_launcher.py</code> 建议新增：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--target primary|all|secondary</code></td>
+<td><code>primary</code> in recovery</td>
+<td>控制训练目标</td>
+</tr>
+<tr>
+<td><code>--resume-existing</code></td>
+<td>off</td>
+<td>自动从 canonical checkpoint 恢复</td>
+</tr>
+<tr>
+<td><code>--skip-complete</code></td>
+<td>on</td>
+<td>跳过已完整完成的任务</td>
+</tr>
+<tr>
+<td><code>--manifest PATH</code></td>
+<td>auto</td>
+<td>指定恢复 manifest</td>
+</tr>
+<tr>
+<td><code>--per-gpu-queue</code></td>
+<td>on</td>
+<td>启用每 GPU worker</td>
+</tr>
+<tr>
+<td><code>--start-stagger-sec</code></td>
+<td><code>60</code></td>
+<td>错开 DataLoader 启动，降低瞬时 I/O / host memory 压力</td>
+</tr>
+<tr>
+<td><code>--max-active-primary</code></td>
+<td><code>6</code></td>
+<td>primary 同时训练上限</td>
+</tr>
+<tr>
+<td><code>--allow-secondary-after-primary</code></td>
+<td>off</td>
+<td>primary 完成前禁止 secondary</td>
+</tr>
+</tbody>
+</table>
+<p><code>train_scripts/run_ultralytics_task.py</code> 建议新增：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--resume-path PATH</code></td>
+<td>从指定 <code>last.pt</code> 恢复</td>
+</tr>
+<tr>
+<td><code>--resume-auto</code></td>
+<td>根据 manifest 自动恢复</td>
+</tr>
+<tr>
+<td><code>--run-dir PATH</code></td>
+<td>显式指定恢复目录，避免 Ultralytics 自动创建 <code>-2/-3</code> 目录</td>
+</tr>
+<tr>
+<td><code>--exist-ok</code></td>
+<td>明确允许写入同一 run 目录</td>
+</tr>
+</tbody>
+</table>
+<p><code>scripts/train_detectron2_fasterrcnn.py</code> 建议新增或确认：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--resume</code></td>
+<td>使用 Detectron2 checkpointer 恢复</td>
+</tr>
+<tr>
+<td><code>--output-dir PATH</code></td>
+<td>显式指定 seed 输出目录</td>
+</tr>
+<tr>
+<td><code>--max-iter INT</code></td>
+<td>与原 epochs / dataset / batch 一致</td>
+</tr>
+<tr>
+<td><code>--eval-only-final</code></td>
+<td>训练中减少重复验证压力，最终统一评估</td>
+</tr>
+</tbody>
+</table>
+<h4>3.3 任务优先级</h4>
+<p>Recovery 模式默认只调度 primary：</p>
+<pre><code class="language-text">Primary:
+  rtdetr_seed1
+  rtdetr_seed2
+  rtdetr_seed3
+  faster_rcnn_seed1
+  faster_rcnn_seed2
+  faster_rcnn_seed3
+
+Secondary:
+  yolo11_seed1/2/3
+  ddw_yolo_seed1/2/3
+  yolov10_seed1/2/3
+  yolov8_seed1/2/3
+</code></pre>
+<p>策略：</p>
+<ul>
+<li>当前已经在跑的 <code>yolo11_seed1</code> 不主动杀。</li>
+<li><code>yolo11_seed1</code> 结束后，不再启动任何 secondary。</li>
+<li>primary 6 个任务全部完成并通过最终评估后，才允许 secondary 队列。</li>
+<li>如果 GPU7 空闲，默认也不拿来跑 secondary，除非显式设置 <code>--allow-secondary-after-primary</code> 或 primary 已全部完成。</li>
+</ul>
+<h4>4. 数据读取与 memory-bound 风险控制</h4>
+<p>训练瓶颈不一定是纯 GPU compute。当前数据量较大，同时启动多个 DataLoader 可能造成：</p>
+<ul>
+<li>host RAM / page cache 压力上升；</li>
+<li>共享存储随机读放大；</li>
+<li>DataLoader worker 抢 CPU；</li>
+<li>pin memory 与预取队列占用过多内存；</li>
+<li>多任务同时做 validation 时 I/O 峰值叠加。</li>
+</ul>
+<h4>4.1 默认安全配置</h4>
+<p>Recovery primary 阶段建议保持模型训练超参不变，只控制数据读取并发：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th style="text-align: right;">建议值</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ultralytics <code>workers</code></td>
+<td style="text-align: right;"><code>8</code> 或 <code>12</code></td>
+<td>从原 <code>16</code> 降低瞬时 worker 数</td>
+</tr>
+<tr>
+<td>Detectron2 <code>D2_NUM_WORKERS</code></td>
+<td style="text-align: right;"><code>4</code> 或 <code>8</code></td>
+<td>降低 host memory 与随机读压力</td>
+</tr>
+<tr>
+<td><code>start_stagger_sec</code></td>
+<td style="text-align: right;"><code>60-180</code></td>
+<td>避免 6 个任务同时初始化 DataLoader</td>
+</tr>
+<tr>
+<td>image cache</td>
+<td style="text-align: right;">off</td>
+<td>不把全量图像缓存到 RAM</td>
+</tr>
+<tr>
+<td>final eval</td>
+<td style="text-align: right;">单独跑</td>
+<td>避免训练中频繁全量评估叠加</td>
+</tr>
+</tbody>
+</table>
+<p>说明：</p>
+<ul>
+<li>降低 <code>workers</code> 一般不影响精度，只影响吞吐。</li>
+<li>不改变 <code>epochs</code>、<code>imgsz</code>、<code>batch</code>、optimizer、seed，避免引入明显精度不可比因素。</li>
+<li>如果观察到 GPU 利用率长期低于 50% 且 <code>data_time</code> 明显升高，再逐步增加 workers。</li>
+</ul>
+<h4>4.2 监控指标</h4>
+<p>恢复训练期间每 10-30 分钟检查一次：</p>
+<pre><code class="language-bash">nvidia-smi
+free -h
+iostat -xz 5 3
+pidstat -d -p ALL 5 3
+</code></pre>
+<p>判定方式：</p>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>可能原因</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPU 利用率低，<code>data_time</code> 高</td>
+<td>I/O 或 DataLoader 瓶颈</td>
+<td>降低并发任务或增加 worker 试探</td>
+</tr>
+<tr>
+<td>host RAM 快耗尽</td>
+<td>worker / prefetch 过多</td>
+<td>降低 workers，关闭 cache</td>
+</tr>
+<tr>
+<td>H200 显存接近满但 GPU 利用高</td>
+<td>模型 compute / activation 压力</td>
+<td>不优先调整数据读取</td>
+</tr>
+<tr>
+<td>validation 阶段多个任务同时变慢</td>
+<td>全量验证 I/O 峰值</td>
+<td>改成最终统一 eval 或错峰 eval</td>
+</tr>
+</tbody>
+</table>
+<h4>5. 恢复执行顺序</h4>
+<h4>Phase A: 冻结旧 launcher</h4>
+<pre><code class="language-bash">cd [redacted-path]/ICS6201
+LAUNCHER_PID=$(pgrep -f 'scripts/parallel_launcher.py --mode formal')
+MASTER_PID=$(pgrep -f 'bash master.sh --gpus 1,2,3,4,5,6,7')
+
+kill -STOP "${LAUNCHER_PID}"
+ps -p "${LAUNCHER_PID}" -o pid,stat,etime,args
+</code></pre>
+<p>检查：</p>
+<pre><code class="language-bash">nvidia-smi
+ps -eo pid,ppid,stat,etime,args \
+  | grep -E 'run_ultralytics_task.py|train_detectron2_fasterrcnn.py' \
+  | grep -v grep
+</code></pre>
+<h4>Phase B: 生成快照与 manifest</h4>
+<pre><code class="language-bash">TS=$(date +%Y%m%d_%H%M%S)
+mkdir -p logs/recovery_${TS}
+
+cp logs/state_formal.json logs/recovery_${TS}/state_formal.snapshot.json
+cp validation_report.md logs/recovery_${TS}/validation_report.snapshot.md
+
+ps -eo pid,ppid,stat,etime,args &gt; logs/recovery_${TS}/process_snapshot.txt
+nvidia-smi &gt; logs/recovery_${TS}/nvidia_smi_snapshot.txt
+</code></pre>
+<p>之后运行新增的 manifest 扫描：</p>
+<pre><code class="language-bash">TRAIN_ENV=fly python scripts/recovery_manifest.py \
+  --runs-dir runs_formal \
+  --detectron-dir runs_detectron2 \
+  --target primary \
+  --out logs/recovery_${TS}/manifest_primary.json
+</code></pre>
+<h4>Phase C: 修改脚本</h4>
+<p>修改范围：</p>
+<ul>
+<li><code>scripts/parallel_launcher.py</code></li>
+<li><code>train_scripts/run_ultralytics_task.py</code></li>
+<li><code>scripts/train_detectron2_fasterrcnn.py</code></li>
+<li><code>master.sh</code></li>
+<li>新增 <code>scripts/recovery_manifest.py</code></li>
+</ul>
+<p>不修改当前正在运行子进程依赖的输出目录。脚本文件可以改，因为已启动的 Python 进程不会重新读取这些入口文件。</p>
+<h4>Phase D: 等当前 7 个任务安全停住或结束</h4>
+<p>推荐等当前 6 个 primary 任务结束，至少等它们写出稳定 checkpoint。</p>
+<p>如果 <code>yolo11_seed1</code> 先结束，由于 launcher 已暂停，不会继续派发 <code>yolo11_seed2</code>。</p>
+<p>判断子任务结束：</p>
+<pre><code class="language-bash">ps -eo pid,ppid,stat,etime,args \
+  | grep -E 'run_ultralytics_task.py|train_detectron2_fasterrcnn.py' \
+  | grep -v grep
+</code></pre>
+<p>当需要终止旧 master / launcher：</p>
+<pre><code class="language-bash">kill -TERM "${LAUNCHER_PID}" "${MASTER_PID}"
+kill -CONT "${LAUNCHER_PID}" "${MASTER_PID}"
+sleep 5
+ps -p "${LAUNCHER_PID}" "${MASTER_PID}"
+</code></pre>
+<p>如果仍未退出，再人工确认没有子训练进程后处理。</p>
+<h4>Phase E: 用新脚本恢复 primary</h4>
+<p>建议启动命令：</p>
+<pre><code class="language-bash">cd [redacted-path]/ICS6201
+
+TRAIN_ENV=fly \
+TRAIN_TARGET=primary \
+WORKERS=8 \
+D2_NUM_WORKERS=8 \
+bash master.sh \
+  --gpus 1,2,3,4,5,6,7 \
+  --resume-existing \
+  --skip-complete \
+  --no-secondary
+</code></pre>
+<p>期望行为：</p>
+<ul>
+<li>已完成的 primary 任务跳过。</li>
+<li>未完成的 <code>rtdetr_seed*</code> 从 <code>weights/last.pt</code> 恢复。</li>
+<li>未完成的 <code>faster_rcnn_seed*</code> 从 Detectron2 <code>last_checkpoint</code> 恢复。</li>
+<li>GPU0 不参与。</li>
+<li>primary 完成前不启动 secondary。</li>
+</ul>
+<h4>Phase F: primary 完成后再跑 secondary</h4>
+<p>只有在 primary 训练和最终评估全部完成后，再启动 secondary：</p>
+<pre><code class="language-bash">TRAIN_ENV=fly \
+TRAIN_TARGET=secondary \
+WORKERS=8 \
+bash master.sh \
+  --gpus 1,2,3,4,5,6,7 \
+  --resume-existing \
+  --skip-complete
+</code></pre>
+<h4>6. 风险覆盖</h4>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>影响</th>
+<th>规避方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>暂停错 PID</td>
+<td>可能停掉训练子进程或无效</td>
+<td>用 <code>pgrep -f 'parallel_launcher.py --mode formal'</code> 并核对 <code>ps</code></td>
+</tr>
+<tr>
+<td>旧 launcher 继续派发任务</td>
+<td>可能撞 GPU / OOM</td>
+<td><code>kill -STOP launcher</code> 后确认 <code>STAT=T</code></td>
+</tr>
+<tr>
+<td>移动活跃 run 目录</td>
+<td>checkpoint / 日志混乱</td>
+<td>活跃期间只读扫描，不移动不重命名</td>
+</tr>
+<tr>
+<td><code>runs_formal/*-2</code> 重复目录误判</td>
+<td>误跳过或误恢复</td>
+<td>用 manifest 选择 canonical 目录</td>
+</tr>
+<tr>
+<td>checkpoint 半写入</td>
+<td>resume 失败</td>
+<td>恢复前确认文件大小和 mtime 稳定</td>
+</tr>
+<tr>
+<td>修改 batch / imgsz / optimizer</td>
+<td>影响精度可比性</td>
+<td>primary 恢复阶段不改训练超参</td>
+</tr>
+<tr>
+<td>降低 workers</td>
+<td>可能训练变慢</td>
+<td>这是吞吐风险，不是精度风险；通过监控再调</td>
+</tr>
+<tr>
+<td>多任务 DataLoader 抢内存/I/O</td>
+<td>GPU 利用下降或 host OOM</td>
+<td>错峰启动、降低 workers、必要时限制并发</td>
+</tr>
+<tr>
+<td>Detectron2 resume 不完整</td>
+<td>重复训练或状态错位</td>
+<td>依赖 <code>last_checkpoint</code> 和 <code>metrics.json</code> 双重确认</td>
+</tr>
+<tr>
+<td>Ultralytics resume 新建目录</td>
+<td>结果分散</td>
+<td>显式传 <code>--run-dir</code> / <code>--exist-ok</code> 或在 manifest 里追踪</td>
+</tr>
+<tr>
+<td>Secondary 抢 primary 资源</td>
+<td>primary 延迟</td>
+<td>recovery 默认 <code>--no-secondary</code></td>
+</tr>
+</tbody>
+</table>
+<h4>7. 验收标准</h4>
+<p>最低验收：</p>
+<ul>
+<li>旧 launcher 暂停后没有新的任务被启动。</li>
+<li>当前 primary 任务 checkpoint 和日志保留完整。</li>
+<li>新 manifest 能列出每个 primary 的 <code>complete/resume/missing</code> 状态。</li>
+<li>新 launcher 使用 per-GPU worker，不再提前把任务固定到未来 GPU。</li>
+<li>Recovery 模式只调度 <code>rtdetr_seed1-3</code> 和 <code>faster_rcnn_seed1-3</code>。</li>
+<li>GPU0 始终空闲。</li>
+</ul>
+<p>最终验收：</p>
+<ul>
+<li><code>rt-detr-l</code> 三个 seed 均完成 120 epoch 或成功从 checkpoint 续训到目标。</li>
+<li><code>faster_rcnn_detectron2</code> 三个 seed 均完成目标 <code>max_iter</code>。</li>
+<li>生成 primary-only 评估报告，包含每个 seed 的最终指标、checkpoint 路径和训练耗时。</li>
+<li>Secondary 任务只有在 primary 完成后才进入调度。</li>
+</ul>
+<h4>8. 原始文件</h4>
+<ul>
+<li>决策矩阵: <code>assets/ics6201_recovery_priority_matrix.csv</code></li>
+<li>计划图: <code>assets/ics6201_recovery_priority_plan.png</code></li>
+</ul></section>
+    <section class="callout warning"><strong>结论边界</strong><p>六模型 × 三随机种子是完整实验设计，但公开结果中只有 RT-DETR-L 与 Faster R-CNN 的三个随机种子核心任务全部完成；其余模型不能写成 18 次训练全部完成。两类 AP 采用各框架原生口径，不宜直接横向比较。</p></section>
+  </article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Evidence Standard</h3><ul class="sidebar-list"><li><span>Problem</span><strong>可复现定义</strong></li><li><span>Method</span><strong>控制变量 / Oracle</strong></li><li><span>Result</span><strong>同口径对照</strong></li><li><span>Boundary</span><strong>不做过度外推</strong></li></ul></div><a class="button primary" href="../projects.html">返回全部项目</a><a class="button" href="../writing.html">技术文章与发布计划</a></aside></div></section>
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng. Evidence-led AI Infra portfolio.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">知乎</a><a href="../resume.html">Resume</a></div></div></footer></body></html>

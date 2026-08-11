@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="通过 TP、Graph、Fusion 与版本的控制变量矩阵，将 vLLM rollout 的 sample_tokens timeout 收敛到 FlashInfer MNNVL fused allreduce + RMSNorm；进一步用位级判断、SASS 对照与两卡 graph replay 完成根因闭环。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/flashinfer-ftz.html"><title>FlashInfer TP2 CUDA Graph Hang：从下游超时到 FTZ / Sentinel 根因 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<body data-page="projects" class="evidence-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../index.html" aria-label="返回首页"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+    <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="detail-hero"><div class="shell"><div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>FlashInfer TP2 CUDA Graph Hang：从下游超时到 FTZ / Sentinel 根因</span></div><span class="eyebrow reveal">GPU Debugging · CUDA Graph · Collective Kernel</span><h1 class="reveal"><span class="gradient-text">FlashInfer TP2 CUDA Graph Hang：从下游超时到 FTZ / Sentinel 根因</span></h1><p class="detail-lead reveal">通过 TP、Graph、Fusion 与版本的控制变量矩阵，将 vLLM rollout 的 sample_tokens timeout 收敛到 FlashInfer MNNVL fused allreduce + RMSNorm；进一步用位级判断、SASS 对照与两卡 graph replay 完成根因闭环。</p><div class="detail-meta-grid reveal"><div class="detail-meta"><span>Role</span><strong>Root-cause Isolation &amp; Backport Validation</strong></div><div class="detail-meta"><span>Environment</span><strong>2× GPU Reproducer · Model-level Replay</strong></div><div class="detail-meta"><span>Stack</span><strong>vLLM · FlashInfer · CUDA Graph · SASS</strong></div><div class="detail-meta"><span>Status</span><strong>公开脱敏案例 · 根因已闭环</strong></div></div></div></section>
+  <section class="section compact section-line"><div class="shell detail-layout"><article class="detail-content">
+    <section><span class="section-kicker">Evidence Snapshot / 证据快照</span><h2>用可复核的数字描述贡献，也明确数字不能证明什么。</h2><div class="metric-grid"><div class="metric-card"><strong>0/3 → 2/2</strong><span>16×16 FULL graph</span><small>修复前后</small></div><div class="metric-card"><strong>0/1 → 3/3</strong><span>prompt-9 case</span><small>精确复现</small></div><div class="metric-card"><strong>8 → 0</strong><span>目标 FTZ SASS predicate</span><small>位级验证</small></div><div class="metric-card"><strong>2/2 + 2/2</strong><span>模型级 graph off / on</span><small>回归通过</small></div></div></section>
+    <section><span class="section-kicker">System / 系统链路</span><h2>从问题到验证的工程闭环</h2><div class="architecture"><div class="arch-node"><strong>RPC Timeout</strong><span>下游等待点</span></div><div class="arch-node"><strong>Control Matrix</strong><span>TP / graph / fusion</span></div><div class="arch-node"><strong>GPU Root Cause</strong><span>FTZ sentinel misclassification</span></div><div class="arch-node"><strong>Bitwise Fix</strong><span>0x80000000 exact match</span></div><div class="arch-node"><strong>Regression</strong><span>minimal + model replay</span></div></div></section>
+    <figure class="project-figure"><img src="../assets/projects/flashinfer/cuda-graph-hang-flow.png" alt="CUDA Graph hang 控制变量排查流程" loading="lazy"><figcaption>CUDA Graph hang 控制变量排查流程 · 公开脱敏图</figcaption></figure><figure class="project-figure"><img src="../assets/projects/flashinfer/rootcause-matrix.png" alt="TP / Graph / Fusion 根因矩阵" loading="lazy"><figcaption>TP / Graph / Fusion 根因矩阵 · 公开脱敏图</figcaption></figure>
+    <section class="source-banner"><div><span class="section-kicker">Public Sources / 公开证据</span><h2>以下正文来自 ICS6201 <code>me</code> 分支的脱敏文档。</h2><p>内部仓库、节点、镜像、模型路径、运行标识、凭据与原始日志均不在页面中。公开数字保留原文定义和适用边界。</p></div><div class="button-row"><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/flashinfer/README.md" target="_blank" rel="noopener noreferrer">根因与修复公开版 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/flashinfer/flashinfer_mnnvl_lamport_ftz_hang_explained_20260717.md" target="_blank" rel="noopener noreferrer">机制详解 ↗</a></div></section>
+    <section class="evidence-section"><h2>根因、修复与验证</h2>
+<blockquote>
+<p>时间：2026-06-23 至 2026-07-15
+核心结论：vLLM TP=2 + FULL CUDA Graph rollout hang 的 GPU 首因是 FlashInfer 0.6.4 MNNVL fused allreduce + RMSNorm 中的 Lamport sentinel 判断受 FTZ 影响；回移官方修复或升级到 0.6.12 后，两卡最小复现与模型级 graph replay 均通过。
+公开边界：不包含内部仓库、节点、模型路径、原始 trace、运行 ID 和构建产物。</p>
+</blockquote>
+<h4>文档入口</h4>
+<ul>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/flashinfer/flashinfer_mnnvl_lamport_ftz_hang_explained_20260717.md" rel="noopener noreferrer" target="_blank">Lamport sentinel 与 FTZ hang 机制详解</a>：解释 BF16 packed payload、FTZ predicate、永久 polling、级联阻塞和位级修复。</li>
+</ul>
+<h4>1. 现象与隔离</h4>
+<p>外层最初表现为 <code>sample_tokens</code> RPC timeout 和 engine-dead 类错误，但 sampler、D2H copy 与消息队列都是等待上游 GPU 工作完成的下游位置。通过 TP1/TP2、eager/FULL graph、fused/unfused 和 PDL 开关的控制变量实验，问题被缩小到 TP=2 FULL graph replay 中的 fused allreduce + RMSNorm 路径。</p>
+<h4>2. 根因</h4>
+<p>旧实现使用浮点比较识别 Lamport <code>-0.0</code> sentinel。在 fast-math/FTZ 语义下，合法的 FP32 负次正规数可能在比较时被当成 <code>-0.0</code>，worker 因而进入永久轮询。</p>
+<p>修复采用精确 bit-pattern 比较识别 <code>0x80000000</code>，避免浮点比较被 FTZ 改写。该修复对应 FlashInfer 官方 <a href="https://github.com/flashinfer-ai/flashinfer/pull/3304">PR #3304</a>。</p>
+<h4>3. 验证结果</h4>
+<table>
+<thead>
+<tr>
+<th>验证</th>
+<th style="text-align: right;">修复前</th>
+<th style="text-align: right;">修复后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>目标 16×16 FULL graph</td>
+<td style="text-align: right;">0/3 通过</td>
+<td style="text-align: right;">2/2 通过</td>
+</tr>
+<tr>
+<td>精确 prompt-9 用例</td>
+<td style="text-align: right;">0/1 通过</td>
+<td style="text-align: right;">3/3 通过</td>
+</tr>
+<tr>
+<td>模型级 graph off</td>
+<td style="text-align: right;">-</td>
+<td style="text-align: right;">2/2 通过</td>
+</tr>
+<tr>
+<td>模型级 graph on</td>
+<td style="text-align: right;">-</td>
+<td style="text-align: right;">2/2 通过</td>
+</tr>
+<tr>
+<td>目标 SASS <code>FSETP.*.FTZ</code></td>
+<td style="text-align: right;">8 处</td>
+<td style="text-align: right;">0 处</td>
+</tr>
+<tr>
+<td>FlashInfer 0.6.12 隔离回归</td>
+<td style="text-align: right;">-</td>
+<td style="text-align: right;">eager、5 次 graph replay、prompt-9、16×16 全部通过</td>
+</tr>
+</tbody>
+</table>
+<h4>4. 当前建议与边界</h4>
+<ul>
+<li>需要保持旧依赖时，使用 FlashInfer 0.6.4 + PR #3304 回移，并清理旧 JIT cache 后重新构建。</li>
+<li>长期方案是升级到已经包含等价修复的新版 FlashInfer，并重新完成依赖和模型回归。</li>
+<li>当前已闭环两卡最小复现和模型级 AsyncLLM 回归；完整大规模 RL <code>main_ppo</code> 仍需最终验收。</li>
+<li>CUDA Graph off/on 的性能差异属于 graph 模式收益，不能归因成两行 sentinel 修复带来的性能提升。</li>
+</ul>
+<h4>5. 月报一句话</h4>
+<p>定位并修复 FlashInfer 0.6.4 在 vLLM TP=2 + FULL CUDA Graph 下因 FTZ 误判 Lamport sentinel 导致的 rollout hang，回移补丁和 FlashInfer 0.6.12 均通过两卡最小复现与 graph replay 回归。</p></section><section class="evidence-section"><h2>FTZ、Lamport Sentinel 与永久轮询机制</h2>
+<blockquote>
+<p>日期：2026-07-17<br/>
+范围：解释 vLLM TP=2 + FULL CUDA Graph 下 FlashInfer MNNVL fused allreduce + RMSNorm hang 的位级机制、传播路径和修复语义。<br/>
+核心结论：旧实现不是把 payload 在内存中改成了 <code>-0.0</code>，而是 FTZ 浮点比较把合法负次正规 payload <strong>误判</strong>为 <code>-0.0</code> sentinel；polling 因而永远认为数据尚未到达，最终表现为 <code>sample_tokens</code> RPC timeout。</p>
+</blockquote>
+<h4>1. 问题背景与结论边界</h4>
+<p>目标问题出现在以下组合中：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>配置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPU</td>
+<td>2×NVIDIA H200，SM90</td>
+</tr>
+<tr>
+<td>模型</td>
+<td>Qwen3-30B-A3B，BF16</td>
+</tr>
+<tr>
+<td>vLLM</td>
+<td>0.16.0rc1 调试路径</td>
+</tr>
+<tr>
+<td>rollout TP</td>
+<td>2</td>
+</tr>
+<tr>
+<td>执行模式</td>
+<td>vLLM compile + FULL CUDA Graph</td>
+</tr>
+<tr>
+<td>通信融合</td>
+<td>FlashInfer MNNVL fused allreduce + RMSNorm</td>
+</tr>
+<tr>
+<td>旧 FlashInfer</td>
+<td>0.6.4</td>
+</tr>
+</tbody>
+</table>
+<p>外层最初只能看到：</p>
+<pre><code class="language-text">sample_tokens RPC timeout
+  -&gt; EngineCore wait_for_response
+  -&gt; shm_broadcast mq.dequeue
+  -&gt; EngineDeadError
+</code></pre>
+<p>控制变量实验进一步证明：</p>
+<ul>
+<li><code>FULL graph + fused</code> 是目标失败路径；</li>
+<li><code>FULL graph + unfused</code> 可以完成；</li>
+<li><code>compile-only + fused</code> 可以完成；</li>
+<li>sampler、D2H copy、RPC 和 MQ 都是上游 GPU 工作不完成后的等待点；</li>
+<li>PDL on/off 都不能消除旧实现的失败。</li>
+</ul>
+<p>本报告解释已经闭环的 kernel 机制，但不声称本地曾直接保存原始 R3 hang 中“某一层、某一个 lane”的具体负次正规 bit pattern。代表模式 <code>0x80010000</code> 来自上游修复说明和定向回归设计；本地因果结论来自 source、SASS、控制组和补丁前后 A/B 的共同证据。</p>
+<h4>2. Lamport sentinel 在这里做什么</h4>
+<p>MNNVL oneshot kernel 需要判断远端 rank 的 multicast 数据是否已经覆盖通信 buffer。它没有给每一个 payload lane 额外设置独立 ready flag，而是先将待写区域填成一个不应与正常数据混淆的 sentinel：</p>
+<pre><code class="language-text">FP32 -0.0
+bit pattern = 0x80000000
+</code></pre>
+<p>消费者的核心逻辑可以简化为：</p>
+<pre><code class="language-cpp">while (true) {
+    // 一次 volatile load 读取 128 bit。
+    float4 value = loadPackedVolatile&lt;float4&gt;(ptr);
+
+    bool valid = true;
+    for (int i = 0; i &lt; 4; ++i) {
+        valid &amp;= !isNegZero(value[i]);
+    }
+
+    if (valid) {
+        break;
+    }
+}
+</code></pre>
+<p>完整状态变化为：</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[轮转到当前 Lamport buffer] --&gt; B[用 0x80000000 初始化各 32-bit lane]
+    B --&gt; C[远端 rank multicast 写入真实 payload]
+    C --&gt; D[本地线程 volatile load]
+    D --&gt; E{是否仍有精确 sentinel}
+    E -- 是 --&gt; D
+    E -- 否 --&gt; F[执行 AllReduce 和 RMSNorm]
+    F --&gt; G[更新 current/dirty buffer 状态]
+</code></pre>
+<p>这里的 <code>float4</code> 首先是 128-bit 搬运载体。对于 BF16 输入，一个 32-bit <code>float</code> lane 实际承载两个 BF16 元素，polling 阶段不应把这 32 bit 当成普通 FP32 数值做近似语义判断。</p>
+<h4>3. 旧判断为什么看起来合理</h4>
+<p>旧实现为：</p>
+<pre><code class="language-cpp">return val == 0.F &amp;&amp; signbit(val);
+</code></pre>
+<p>设计意图是利用 IEEE-754 的两个事实：</p>
+<ul>
+<li><code>+0.0 == 0.0</code> 和 <code>-0.0 == 0.0</code> 都为真；</li>
+<li><code>signbit(+0.0)</code> 为假，<code>signbit(-0.0)</code> 为真。</li>
+</ul>
+<p>在保留次正规数的严格浮点比较下，二者结合确实只会匹配 <code>-0.0</code>。问题在于目标 JIT kernel 使用 <code>-use_fast_math</code>，它隐含：</p>
+<pre><code class="language-text">--ftz=true
+--prec-div=false
+--prec-sqrt=false
+--fmad=true
+</code></pre>
+<p>其中 <code>FTZ</code> 是 Flush To Zero。NVIDIA PTX 对 <code>setp.ftz.f32</code> 的定义是：FP32 次正规输入在参与比较时，被视为保留符号的零。</p>
+<h4>4. FTZ 如何制造 sentinel 假阳性</h4>
+<p>FP32 的几个关键 bit pattern：</p>
+<table>
+<thead>
+<tr>
+<th>位模式</th>
+<th>类别</th>
+<th style="text-align: right;">FTZ 下 <code>val == 0</code></th>
+<th style="text-align: right;"><code>signbit</code></th>
+<th style="text-align: right;">旧判断结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0x00000000</code></td>
+<td><code>+0.0</code></td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;">false</td>
+<td style="text-align: right;">false</td>
+</tr>
+<tr>
+<td><code>0x80000000</code></td>
+<td><code>-0.0</code> sentinel</td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;">true</td>
+</tr>
+<tr>
+<td><code>0x00000001</code></td>
+<td>最小正次正规数</td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;">false</td>
+<td style="text-align: right;">false</td>
+</tr>
+<tr>
+<td><code>0x80000001</code></td>
+<td>最小负次正规数</td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;"><strong>true，误判</strong></td>
+</tr>
+<tr>
+<td><code>0x807fffff</code></td>
+<td>最大负次正规数</td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;"><strong>true，误判</strong></td>
+</tr>
+<tr>
+<td><code>0x80800000</code></td>
+<td>最小负正规数</td>
+<td style="text-align: right;">false</td>
+<td style="text-align: right;">true</td>
+<td style="text-align: right;">false</td>
+</tr>
+</tbody>
+</table>
+<p>因此在 FTZ 比较语义下，旧 predicate 实际匹配的不是单独一个值：</p>
+<pre><code class="language-text">预期：0x80000000
+
+实际：0x80000000
+      以及 0x80000001 ... 0x807fffff
+</code></pre>
+<p>需要特别区分两个动作：</p>
+<ol>
+<li><code>ld.volatile.global.v4.f32</code> 将原始 bit 读入寄存器；</li>
+<li><code>FSETP.*.FTZ</code> 在浮点比较时将次正规输入按带符号零处理。</li>
+</ol>
+<p>FTZ comparison 不等于“global memory 中的 payload 被永久写成零”。原始 bit 仍然存在，位级比较仍可读取它；错误发生在 FP predicate 的解释方式上。</p>
+<h4>5. BF16 payload 为什么会形成 FP32 负次正规模式</h4>
+<p>目标 kernel 的模板组合为：</p>
+<pre><code class="language-text">PackedType = float4
+T          = bfloat16
+</code></pre>
+<p><code>float4</code> 共 16 bytes，因此承载 8 个 BF16；每个 32-bit lane 承载两个 BF16。假设小端顺序下，相邻两个 BF16 为：</p>
+<pre><code class="language-text">低 16 bit：0x0000  // BF16 +0
+高 16 bit：0x8001  // BF16 最小负次正规数
+</code></pre>
+<p>原始 32-bit lane 为：</p>
+<pre><code class="language-text">0x80010000
+</code></pre>
+<p>从 BF16 payload 角度，这是两个合法元素；从 FP32 bit layout 临时解释，它又恰好是一个负 FP32 次正规数：</p>
+<pre><code class="language-text">0x80010000 != 0x80000000
+</code></pre>
+<p>正常 polling 应判断“真实数据已经到达”。旧代码在 FTZ 下却得到：</p>
+<pre><code class="language-cpp">val == 0.F     // true：comparison 将负次正规输入按 -0 处理
+signbit(val)   // true：原始最高位为 1
+</code></pre>
+<p>最终将合法 payload 错当成 sentinel。</p>
+<p>kernel 在写入前已经会把<strong>精确 BF16 <code>-0.0</code></strong>转换成 <code>+0.0</code>，避免真正的 payload 与 sentinel 冲突；但 <code>0x8001</code> 是合法负次正规 BF16，不是精确 <code>-0.0</code>，不应被清洗。漏洞正是出现在随后按 FP32 检查 packed lane 的步骤。</p>
+<h4>6. 为什么错误会变成永久 hang</h4>
+<p>producer 已经完成一次真实 payload 写入，之后不会为了满足 poller 再次改写这个位置。假设该位置稳定为 <code>0x80010000</code>，旧 poller 的状态为：</p>
+<pre><code class="language-text">读取 0x80010000
+  -&gt; FTZ 浮点比较误判为 sentinel
+  -&gt; 继续等待
+  -&gt; 再次读取同一个 0x80010000
+  -&gt; 再次误判
+  -&gt; 永久轮询
+</code></pre>
+<p>只需要少数 thread/lane 命中该模式，就会产生级联阻塞：</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[部分线程卡在 Lamport polling] --&gt; B[同 warp 其他线程进入 full-mask shuffle]
+    B --&gt; C[__shfl_xor_sync 等不到全部 lane]
+    C --&gt; D[其他 warp 卡在 __syncthreads]
+    D --&gt; E[其他 CTA 卡在 cluster barrier]
+    E --&gt; F[fused AllReduce + RMSNorm kernel 不结束]
+    F --&gt; G[sampled-token D2H / CUDA synchronize 不结束]
+    G --&gt; H[TP worker 无法返回 sample_tokens]
+    H --&gt; I[RPC timeout / EngineDeadError]
+</code></pre>
+<p>这解释了为什么 EngineCore 的最终栈位于 <code>mq.dequeue()</code>：RPC 和共享内存队列只是下游观察点，真正没有完成的是 GPU producer。</p>
+<p>FlashInfer issue #3053 的 cuda-gdb 证据也显示：部分线程停在 <code>loadPackedVolatile</code>/<code>isNegZero</code> polling，其余线程分别停在 warp shuffle、block barrier 和 cluster barrier。</p>
+<h4>7. CUDA Graph 和 fused RMSNorm 分别扮演什么角色</h4>
+<p>CUDA Graph 不是 FTZ 的来源。FTZ 来自目标 kernel 的编译选项及其浮点比较指令。</p>
+<p>Graph replay 在本问题中是稳定暴露条件：</p>
+<ul>
+<li>FULL graph 走到目标 fused MNNVL kernel；</li>
+<li>Lamport buffers、地址和迭代状态被反复使用；</li>
+<li>特定模型 payload 命中会发生碰撞的负次正规 bit pattern；</li>
+<li>错误 polling 因而稳定出现。</li>
+</ul>
+<p>因此以下两个说法需要同时成立：</p>
+<ol>
+<li>不能因为 eager 或随机 standalone 通过，就断言 sentinel 实现正确；随机输入可能没有命中触发 bit pattern。</li>
+<li>不能说“CUDA Graph 把数值变成了 <code>-0.0</code>”；Graph 只是让错误 kernel、状态和数据组合进入了可稳定复现的执行路径。</li>
+</ol>
+<p><code>fuse_allreduce_rms=False</code> 可以通过，是因为它避开了目标 fused polling kernel；这是一种规避方式，不是修复了 sentinel protocol。</p>
+<h4>8. 位级修复为什么正确</h4>
+<p>FlashInfer PR #3304 将判断改为：</p>
+<pre><code class="language-cpp">constexpr uint32_t kNEGZERO_FP32 = 0x80000000U;
+
+return __float_as_uint(val) == kNEGZERO_FP32;
+</code></pre>
+<p>新判断只回答一个问题：</p>
+<pre><code class="language-text">这 32 bit 是否精确等于 0x80000000？
+</code></pre>
+<p>因此：</p>
+<pre><code class="language-text">0x80000000 -&gt; sentinel
+0x80000001 -&gt; 合法负次正规 payload
+0x80010000 -&gt; 合法 packed payload
+</code></pre>
+<p>修复的性质：</p>
+<ul>
+<li>使用原始位模式和整数 equality，不受 FTZ 影响；</li>
+<li>不改变 AllReduce、residual、RMSNorm、PDL 或 CUDA Graph 的数学公式；</li>
+<li>不改变通信 buffer layout 和 ABI；</li>
+<li>不需要为了一个 sentinel predicate 全局关闭 <code>-use_fast_math</code>；</li>
+<li>保留 fast-math 的性能路径，同时恢复 polling 的活性。</li>
+</ul>
+<p>直接删除 <code>-use_fast_math</code> 不是首选修复，因为它还会同时改变 division、sqrt、FMA 和数学库行为，影响面远大于 sentinel 判定。既然 sentinel 本来就是一个精确 bit pattern，就应该用精确 bit comparison 表达协议契约。</p>
+<h4>9. 本地与上游证据</h4>
+<table>
+<thead>
+<tr>
+<th>验证项</th>
+<th style="text-align: right;">旧 0.6.4</th>
+<th style="text-align: right;">PR #3304 backport</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16 requests × 16 tokens，FULL graph fused</td>
+<td style="text-align: right;">0/3 PASS</td>
+<td style="text-align: right;">2/2 PASS</td>
+</tr>
+<tr>
+<td>精确 prompt-9</td>
+<td style="text-align: right;">0/1 PASS</td>
+<td style="text-align: right;">3/3 PASS</td>
+</tr>
+<tr>
+<td>目标 kernel <code>FSETP.*.FTZ</code></td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>compile-only fused control</td>
+<td style="text-align: right;">PASS</td>
+<td style="text-align: right;">PASS</td>
+</tr>
+<tr>
+<td>FULL graph unfused control</td>
+<td style="text-align: right;">PASS</td>
+<td style="text-align: right;">PASS</td>
+</tr>
+</tbody>
+</table>
+<p>FlashInfer 0.6.12 已包含同类修复，并通过本工程的 eager、graph replay、prompt-9 和 16×16 两卡验证。上述数字用于证明活性修复；它们不代表完整 8×H200 RL <code>main_ppo</code> 已经完成最终生产验收。</p>
+<p>上游资料：</p>
+<ul>
+<li><a href="https://github.com/flashinfer-ai/flashinfer/pull/3304">FlashInfer PR #3304：bitwise sentinel fix</a></li>
+<li><a href="https://github.com/flashinfer-ai/flashinfer/issues/3053">FlashInfer issue #3053：oneshotAllreduceFusionKernel graph replay hang</a></li>
+<li><a href="https://github.com/flashinfer-ai/flashinfer/commit/1a60071">PR #3304 merge commit</a></li>
+<li><a href="https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#use-fast-math-use-fast-math">NVIDIA NVCC <code>-use_fast_math</code></a></li>
+<li><a href="https://docs.nvidia.com/cuda/parallel-thread-execution/#comparison-and-selection-instructions-setp">NVIDIA PTX <code>setp.ftz.f32</code></a></li>
+</ul>
+<h4>10. 部署和验证要求</h4>
+<p>只修改 header 不足以生效。<code>trtllm_mnnvl_allreduce.cuh</code> 会被 JIT 编译进入：</p>
+<pre><code class="language-text">trtllm_mnnvl_comm.so
+</code></pre>
+<p>部署必须同时满足：</p>
+<ol>
+<li>worker 实际导入 patched FlashInfer package/header；</li>
+<li>使用 patched header 重新生成 JIT <code>.so</code>，不能复用旧 cache；</li>
+<li>验证 fused path、MNNVL backend 和 FULL graph replay 确实发生；</li>
+<li>运行 eager fused、graph unfused、graph fused 等控制组；</li>
+<li>对目标失败用例进行 fresh-process 重复；</li>
+<li>检查 worker 正常退出且没有残留 GPU 进程。</li>
+</ol>
+<p>源码和 binary 的基本审计方式：</p>
+<pre><code class="language-bash">#### source：只允许位级 sentinel 判断
+rg -n 'kNEGZERO_FP32|__float_as_uint|val == 0\.F &amp;&amp; signbit' \
+  &lt;flashinfer-package&gt;/data/include/flashinfer/comm/trtllm_mnnvl_allreduce.cuh
+
+#### binary：确认目标 kernel 不再包含危险的 FTZ FP predicate
+cuobjdump --dump-sass &lt;trtllm_mnnvl_comm.so&gt; \
+  | rg 'oneshotAllreduceFusionKernel|FSETP.*FTZ'
+</code></pre>
+<p>验收不能只看 FlashInfer version string。回移补丁后版本仍可显示 <code>0.6.4</code>；真正需要核对的是 header、JIT workspace、<code>.so</code> identity、SASS 和功能回归。</p>
+<h4>11. 一句话总结</h4>
+<p>FlashInfer 0.6.4 把 Lamport <code>-0.0</code> sentinel 当作浮点值比较，fast-math/FTZ 因而会将合法负次正规 packed payload 误判成“数据未到达”，造成 MNNVL fused kernel 永久轮询；PR #3304 改用 <code>0x80000000</code> 精确位比较后消除了碰撞，且不改变 AllReduce/RMSNorm 数学结果。</p>
+<h4>给 leader 的汇报话术</h4>
+<p>R3 rollout 在 TP=2 + FULL CUDA Graph 下的 <code>sample_tokens</code> timeout 已定位到 FlashInfer 0.6.4 MNNVL fused allreduce + RMSNorm kernel。旧代码在 fast-math/FTZ 下用浮点比较识别 <code>-0.0</code> sentinel，会把合法负次正规 payload 误判成未就绪，导致 GPU polling 永久不退出；将判断改成 <code>0x80000000</code> 精确位比较并重建 JIT cache 后，原失败用例和 SASS 回归均通过。该修改是活性修复，不改变 fused 算子的输出公式；完整 8 卡 RL 训练仍作为生产验收边界保留。</p></section>
+    <section class="callout warning"><strong>结论边界</strong><p>这项工作支持“定位并修复现用版本、完成回移和回归”，不声称本人原创 FlashInfer 上游 PR；CUDA Graph 的性能收益也不能归因于两行 sentinel 修复。</p></section>
+  </article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Evidence Standard</h3><ul class="sidebar-list"><li><span>Problem</span><strong>可复现定义</strong></li><li><span>Method</span><strong>控制变量 / Oracle</strong></li><li><span>Result</span><strong>同口径对照</strong></li><li><span>Boundary</span><strong>不做过度外推</strong></li></ul></div><a class="button primary" href="../projects.html">返回全部项目</a><a class="button" href="../writing.html">技术文章与发布计划</a></aside></div></section>
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng. Evidence-led AI Infra portfolio.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">知乎</a><a href="../resume.html">Resume</a></div></div></footer></body></html>

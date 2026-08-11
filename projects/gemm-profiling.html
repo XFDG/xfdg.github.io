@@ -1,150 +1,379 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="H200 MoE Grouped GEMM Profiling、线上离线对齐与配置调优项目。">
-  <meta name="theme-color" content="#07090d">
-  <link rel="canonical" href="https://xfdg.github.io/projects/gemm-profiling.html">
-  <title>H200 MoE GEMM Profiling — Haoran Feng</title>
-  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../styles.css">
-  <script src="../script.js" defer></script>
-</head>
-<body data-page="projects">
-  <header class="site-header">
-    <div class="shell header-inner">
-      <a class="brand" href="../index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
-      <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
-      <nav class="site-nav" aria-label="主导航">
-        <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <section class="detail-hero">
-      <div class="shell">
-        <div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>H200 MoE GEMM Profiling</span></div>
-        <span class="eyebrow reveal">GPU Performance · MoE</span>
-        <h1 class="reveal"><span class="gradient-text">H200 MoE / Grouped GEMM：先把统计语义对齐，再谈 Kernel 调优。</span></h1>
-        <p class="detail-lead reveal">面对 MoE 热路径，最危险的不是“没有 Profile”，而是拿着错误的 rows、shape 或 expert 分布做 Profile。这个项目围绕线上 NVTX range、DeepEP compact rows、本地 replay 与 SM90 config tuning，建立从观测到决策的性能闭环。</p>
-        <div class="detail-meta-grid reveal">
-          <div class="detail-meta"><span>Role</span><strong>Profiling & Kernel Tuning</strong></div>
-          <div class="detail-meta"><span>Hardware</span><strong>NVIDIA H200 · SM90</strong></div>
-          <div class="detail-meta"><span>Stack</span><strong>Nsight · CUTLASS · Quack</strong></div>
-          <div class="detail-meta"><span>Scope</span><strong>Grouped GEMM · MoE Hot Path</strong></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section compact section-line">
-      <div class="shell detail-layout">
-        <article class="detail-content">
-          <section id="problem">
-            <span class="section-kicker">01 / Problem</span>
-            <h2>同一个“rows”，在不同模块里可能根本不是同一个工作量。</h2>
-            <p>MoE 中一个 token 会被 router 分配给 top-k experts。上游常用 <span class="mono">T × topk</span> 表示全展开 rows，但通信/dispatch 后可能经过 response mask、capacity、drop 或 compact，真正进入 Grouped GEMM 的是 <span class="mono">TK_valid</span>。如果用前者解释后者的 Kernel latency，就会严重低估或高估吞吐。</p>
-            <div class="callout"><strong>关键发现</strong><p>将全展开 rows 与 DeepEP compact rows 混用，会造成约 4×–6× 的性能口径误判。优化前先修正“测的到底是什么”。</p></div>
-          </section>
-
-          <section id="pipeline">
-            <span class="section-kicker">02 / Pipeline</span>
-            <h2>MoE 热路径中的 shape 形成过程</h2>
-            <div class="architecture">
-              <div class="arch-node"><strong>Router</strong><span>T × topk assignments</span></div>
-              <div class="arch-node"><strong>Mask / Compact</strong><span>valid token rows</span></div>
-              <div class="arch-node"><strong>Dispatch</strong><span>expert distribution</span></div>
-              <div class="arch-node"><strong>Grouped GEMM</strong><span>gemm_gated / gemm_out</span></div>
-              <div class="arch-node"><strong>Combine</strong><span>restore token order</span></div>
-            </div>
-            <p>单看矩阵 M/N/K 仍然不够。Grouped GEMM 的性能还取决于每个 expert 的 rows 分布、group 数、空 expert、长尾负载、数据类型、epilogue、调度策略与运行时开销。</p>
-          </section>
-
-          <section id="method">
-            <span class="section-kicker">03 / Method</span>
-            <h2>从线上 Profile 到本地可控 Replay</h2>
-            <ol class="number-list">
-              <li><strong>统一口径：</strong>确认每个 range 中的 rows 是全展开、mask 后有效值，还是 dispatch 后 compact rows。</li>
-              <li><strong>采集代表样本：</strong>从线上执行中抽取 1024 条 forward range，保留 shape、expert 分布与调用类型。</li>
-              <li><strong>构造本地回放：</strong>在相同 GPU 与软件栈上复现代表性 shape，避免训练框架其他阶段干扰。</li>
-              <li><strong>对齐误差：</strong>比较线上与本地 profile 的 latency / MFU，确认 replay 是否足以支撑配置选择。</li>
-              <li><strong>Config tuning：</strong>围绕 SM90 候选 tile、cluster、pipeline 等参数增加 autotune 搜索空间。</li>
-            </ol>
-          </section>
-
-          <section id="replay">
-            <span class="section-kicker">04 / Replay Validation</span>
-            <h2>本地回放必须先证明“像线上”。</h2>
-            <div class="data-table-wrap">
-              <table class="data-table">
-                <thead><tr><th>Representative Shape</th><th>Local vs Target Profile</th><th>Interpretation</th></tr></thead>
-                <tbody>
-                  <tr><td>Shape A</td><td>+0.46%</td><td>高度接近，可用于细粒度配置比较</td></tr>
-                  <tr><td>Shape B</td><td>−1.11%</td><td>误差较小，趋势可信</td></tr>
-                  <tr><td>Shape C</td><td>−5.40%</td><td>需要保留系统噪声与分布差异解释</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p>这些差异说明 replay 可以作为调优筛选工具，但不能把每个微秒差异都解释为线上收益。对于误差较大的 shape，需要继续检查 expert rows 分布、warm-up、频率、其他流并发和内存状态。</p>
-          </section>
-
-          <section id="tuning">
-            <span class="section-kicker">05 / Tuning</span>
-            <h2>SM90 Config-level Tuning</h2>
-            <p>参与 Quack / CUTLASS Grouped GEMM 的候选配置扩展，围绕 <span class="mono">gemm_gated</span> 与 <span class="mono">gemm_out</span> 比较 latency、MFU 和不同 expert 分布下的稳定性。补充候选并不是越多越好，而是要让搜索空间覆盖目标 shape 的计算/访存特征。</p>
-            <div class="metric-grid">
-              <div class="metric-card"><strong>+5.3%</strong><span>目标线上 shape 的脱敏加速</span><small>BEST CANDIDATE</small></div>
-              <div class="metric-card"><strong>SM90</strong><span>Hopper Tensor Core / TMA 路径</span><small>ARCH</small></div>
-              <div class="metric-card"><strong>Config-level</strong><span>不改数学语义，优化执行配置</span><small>LOW RISK</small></div>
-            </div>
-            <div class="callout warning"><strong>避免过拟合</strong><p>单个 shape 的最佳配置不一定适用于不同 rows 分布。最终应在多个 shape × 多种 expert 分布上比较，并评估 autotune 时间、二进制体积和运行时选择开销。</p></div>
-          </section>
-
-          <section id="analysis">
-            <span class="section-kicker">06 / Performance Reasoning</span>
-            <h2>我如何判断一个 Grouped GEMM 为什么慢</h2>
-            <div class="skill-groups">
-              <div class="skill-group"><h3>工作量是否真实</h3><p>rows、top-k、mask、compact、group count 与 expert 分布是否一致。</p></div>
-              <div class="skill-group"><h3>Kernel 是否吃满</h3><p>Tensor Core 利用率、occupancy、tile 浪费、长尾 group 与 launch overhead。</p></div>
-              <div class="skill-group"><h3>数据移动是否主导</h3><p>dispatch/combine、TMA、L2 命中、写回、epilogue 与中间 buffer。</p></div>
-              <div class="skill-group"><h3>系统是否干扰</h3><p>其他 stream、通信 overlap、频率、warm-up、CUDA Graph 与 range 边界。</p></div>
-            </div>
-          </section>
-
-          <section id="contribution">
-            <span class="section-kicker">07 / Contribution</span>
-            <h2>我的个人贡献</h2>
-            <ul>
-              <li>发现并修正 T×top-k 全展开 rows 与 DeepEP compact rows 混用的问题，避免 4×–6× 误判。</li>
-              <li>从线上 1024 条 forward range 构造本地回放，并量化代表性 shape 的线上/离线差异。</li>
-              <li>参与 Grouped GEMM 配置级调优，分析 MFU、latency 与 expert 分布之间的关系。</li>
-              <li>补充 SM90 autotune 候选，使一个目标线上 shape 获得约 5.3% 脱敏加速。</li>
-              <li>把 Profile 结论从“某 Kernel 很慢”升级为可验证的工作量、架构与系统解释。</li>
-            </ul>
-          </section>
-
-          <section id="next">
-            <span class="section-kicker">08 / Next</span>
-            <h2>下一步</h2>
-            <ol class="number-list">
-              <li>建立 shape × expert distribution × config 的自动化回归矩阵，减少人工挑选偏差。</li>
-              <li>把 Kernel latency、MFU 与端到端 step time 关联，量化局部优化的真实系统收益。</li>
-              <li>对比 H200 与 B200 上 Grouped GEMM 的 tile、TMA、Tensor Core 与 cluster 选择变化。</li>
-              <li>补充可公开的简化 replay 代码与 Nsight 分析截图。</li>
-            </ol>
-          </section>
-        </article>
-
-        <aside class="detail-sidebar">
-          <div class="sidebar-card"><h3>Contents</h3><nav class="toc"><a href="#problem">统计语义</a><a href="#pipeline">MoE 数据流</a><a href="#method">分析方法</a><a href="#replay">回放验证</a><a href="#tuning">配置调优</a><a href="#analysis">性能判断</a><a href="#contribution">个人贡献</a><a href="#next">下一步</a></nav></div>
-          <div class="sidebar-card"><h3>Key Facts</h3><ul class="sidebar-list"><li><span>GPU</span><strong>H200 / SM90</strong></li><li><span>Ranges</span><strong>1024 forward</strong></li><li><span>Error fixed</span><strong>4×–6×</strong></li><li><span>Target gain</span><strong>+5.3%</strong></li></ul></div>
-          <a class="button primary" href="../projects.html">返回全部项目</a>
-        </aside>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="../resume.html">Resume</a></div></div></footer>
-</body>
-</html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="先分离 T、T×top-k 与 DeepEP compact rows，再对稳态 NVTX range、线上 shape 回放和 Quack/CUTLASS 3.x 候选配置进行同口径分析，避免用错误工作量解释 Kernel 性能。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/gemm-profiling.html"><title>H200 MoE Grouped GEMM：统计口径纠偏、线上回放与 SM90 调优 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<body data-page="projects" class="evidence-page">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../index.html" aria-label="返回首页"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+    <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="主导航">
+      <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="detail-hero"><div class="shell"><div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>H200 MoE Grouped GEMM：统计口径纠偏、线上回放与 SM90 调优</span></div><span class="eyebrow reveal">GPU Performance · MoE · SM90</span><h1 class="reveal"><span class="gradient-text">H200 MoE Grouped GEMM：统计口径纠偏、线上回放与 SM90 调优</span></h1><p class="detail-lead reveal">先分离 T、T×top-k 与 DeepEP compact rows，再对稳态 NVTX range、线上 shape 回放和 Quack/CUTLASS 3.x 候选配置进行同口径分析，避免用错误工作量解释 Kernel 性能。</p><div class="detail-meta-grid reveal"><div class="detail-meta"><span>Role</span><strong>Profiling, Workload Reconstruction &amp; Config Tuning</strong></div><div class="detail-meta"><span>Environment</span><strong>NVIDIA H200 · 1,024 Forward Ranges</strong></div><div class="detail-meta"><span>Stack</span><strong>Nsys · NVTX · Quack · CUTLASS · DeepEP</strong></div><div class="detail-meta"><span>Status</span><strong>公开 CSV / 图表 / 脚本可复核</strong></div></div></div></section>
+  <section class="section compact section-line"><div class="shell detail-layout"><article class="detail-content">
+    <section><span class="section-kicker">Evidence Snapshot / 证据快照</span><h2>用可复核的数字描述贡献，也明确数字不能证明什么。</h2><div class="metric-grid"><div class="metric-card"><strong>195,976 → 29,446</strong><span>expanded vs compact rows</span><small>纠正 4×–6× 误判</small></div><div class="metric-card"><strong>66.5%</strong><span>Quack pure GEMM MFU</span><small>选定 shape 集</small></div><div class="metric-card"><strong>+5.3%</strong><span>目标 shape tuning</span><small>config-level</small></div><div class="metric-card"><strong>+1.84%</strong><span>14 shapes × 3 distributions</span><small>聚合收益</small></div></div></section>
+    <section><span class="section-kicker">System / 系统链路</span><h2>从问题到验证的工程闭环</h2><div class="architecture"><div class="arch-node"><strong>Router</strong><span>T × top-k assignments</span></div><div class="arch-node"><strong>DeepEP Dispatch</strong><span>compact TK_valid</span></div><div class="arch-node"><strong>Stable Profile</strong><span>remove JIT / warmup</span></div><div class="arch-node"><strong>Local Replay</strong><span>min / target / max</span></div><div class="arch-node"><strong>SM90 Search</strong><span>tile / cluster / swizzle</span></div></div></section>
+    <figure class="project-figure"><img src="../assets/projects/gemm/h200-path-overview.png" alt="CUTLASS / Quack / DeepGEMM / SonicMoE 路径概览" loading="lazy"><figcaption>CUTLASS / Quack / DeepGEMM / SonicMoE 路径概览 · 公开脱敏图</figcaption></figure><figure class="project-figure"><img src="../assets/projects/gemm/quack-plan-summary.png" alt="Quack H200 多 shape、多分布调优汇总" loading="lazy"><figcaption>Quack H200 多 shape、多分布调优汇总 · 公开脱敏图</figcaption></figure>
+    <section class="source-banner"><div><span class="section-kicker">Public Sources / 公开证据</span><h2>以下正文来自 ICS6201 <code>me</code> 分支的脱敏文档。</h2><p>内部仓库、节点、镜像、模型路径、运行标识、凭据与原始日志均不在页面中。公开数字保留原文定义和适用边界。</p></div><div class="button-row"><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/H200_GEMM%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%85%AC%E5%BC%80%E7%89%88.md" target="_blank" rel="noopener noreferrer">H200 性能分析 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/Quack%E8%B0%83%E4%BC%98%E5%BC%80%E5%8F%91%E8%AE%B0%E5%BD%95%E5%85%AC%E5%BC%80%E7%89%88.md" target="_blank" rel="noopener noreferrer">Quack 调优记录 ↗</a></div></section>
+    <section class="evidence-section"><h2>口径纠偏、Profile 与本地回放</h2>
+<blockquote>
+<p>结论：性能差距的首要问题不是 H200 算力不足，而是 benchmark 与线上链路使用了不同的 routed-row 口径，并叠加 Triton autotune/warmup 污染。统一 DeepEP compact rows 后，三个代表 shape 的本地回放与线上差异收敛到 +0.46% / -1.11% / -5.40%。</p>
+</blockquote>
+<h4>1. 分析目标</h4>
+<p>面向 MoE grouped GEMM，工作分为三个问题：</p>
+<ol>
+<li>CUTLASS 2.x、Quack、DeepGEMM 和 SonicMoE e2e 的性能分别处于什么水平；</li>
+<li>pure GEMM 与 e2e 差距来自 kernel 本体、routing/communication 还是测试口径；</li>
+<li>线上 shape 能否被本地稳定回放，并进一步做配置调优。</li>
+</ol>
+<p>硬件口径为 H200 BF16，峰值按 989 TFLOPS 计算 MFU。MFU 只用于同一 FLOPs 定义下的比较。</p>
+<h4>2. 四路 benchmark</h4>
+<p>最初实验覆盖 18 个 shape，并比较四条路径，共 72 个逻辑数据点：</p>
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>测量范围</th>
+<th style="text-align: right;">平均或代表结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CUTLASS 2.x grouped GEMM</td>
+<td>raw grouped GEMM</td>
+<td style="text-align: right;">约 35.9% MFU</td>
+</tr>
+<tr>
+<td>Quack / CUTLASS 3.x JIT</td>
+<td>pure GEMM</td>
+<td style="text-align: right;">约 66.5% MFU</td>
+</tr>
+<tr>
+<td>DeepGEMM</td>
+<td>预编译 shape 能命中时</td>
+<td style="text-align: right;">依赖 bundle 覆盖</td>
+</tr>
+<tr>
+<td>SonicMoE forward</td>
+<td>routing + gather + GEMM + combine</td>
+<td style="text-align: right;">约 32.1% MFU</td>
+</tr>
+<tr>
+<td>SonicMoE backward</td>
+<td>backward e2e</td>
+<td style="text-align: right;">约 20.8% MFU</td>
+</tr>
+</tbody>
+</table>
+<p>早期归档的 18 行结果中，Quack 平均 64.9%、CUTLASS 2.x 平均 35.2%、SonicMoE forward 平均 31.0%；后续扩展汇总得到 66.5%/35.9%/32.1%。两组数字来自不同汇总批次，简历使用后者，历史归档保留前者。</p>
+<h4>3. Profile 去噪</h4>
+<h4>3.1 表象</h4>
+<p>第一次 profile 中，token_gather_sum 一度显示占总时间约 69.9%，看起来像 gather 是绝对瓶颈。但 trace 同时包含 Triton autotune、JIT 和 warmup，首轮运行不能代表稳态。</p>
+<h4>3.2 处理方法</h4>
+<ol>
+<li>把首次编译、autotune 和正式计时分开；</li>
+<li>对同一 shape 先预热，再抓稳定迭代；</li>
+<li>用 NVTX/range 将 routing、gather、GEMM、combine 分段；</li>
+<li>对照单 kernel latency 与区间总时长，检查 trace 是否重复计入；</li>
+<li>用理论 FLOPs 和实际 compact rows 重新计算 MFU。</li>
+</ol>
+<h4>3.3 稳态结论</h4>
+<table>
+<thead>
+<tr>
+<th>区间</th>
+<th style="text-align: right;">受污染表象</th>
+<th style="text-align: right;">稳态口径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>token_gather_sum</td>
+<td style="text-align: right;">约 69.9%</td>
+<td style="text-align: right;">约 3.78%</td>
+</tr>
+<tr>
+<td>Quack GEMM</td>
+<td style="text-align: right;">被 warmup 稀释</td>
+<td style="text-align: right;">约 94.98%</td>
+</tr>
+</tbody>
+</table>
+<p>这一步把优化方向从“优先重写 gather”纠正为“先对齐 rows，再评估 GEMM schedule 和 e2e 通信/融合”。</p>
+<h4>4. Routed-row 口径纠偏</h4>
+<p>MoE 的 token 数至少有三种常见口径：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>含义</th>
+<th style="text-align: right;">本次代表值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T</td>
+<td>原始 token rows</td>
+<td style="text-align: right;">24,497</td>
+</tr>
+<tr>
+<td>T * top-k</td>
+<td>每个 token 对所有选中 expert 展开后的逻辑 rows</td>
+<td style="text-align: right;">195,976</td>
+</tr>
+<tr>
+<td>TK_valid</td>
+<td>DeepEP dispatch 后实际 compact rows</td>
+<td style="text-align: right;">29,446</td>
+</tr>
+</tbody>
+</table>
+<p>standalone benchmark 早期直接使用 T * top-k，而线上 kernel 接收的是按 expert compact 后的 TK_valid。195,976 / 29,446 约为 6.66，足以制造 4x-6x 的虚假性能差距。</p>
+<p>统一原则：</p>
+<ul>
+<li>FLOPs 使用实际执行的 compact rows；</li>
+<li>expert-M 分布由 dispatch 后每个 expert 的有效行数决定；</li>
+<li>padding、capacity 和 dropped token 单独记录；</li>
+<li>pure GEMM 与包含 routing/communication 的 e2e latency 分开报告。</li>
+</ul>
+<h4>5. 线上 shape 回放</h4>
+<p>从线上 profile 中提取 1,024 条 forward range 的形状统计，按最小、目标、最大 compact rows 选择三个代表 case。公开仓库只保留聚合 shape，不保存内部原始 ranges。</p>
+<table>
+<thead>
+<tr>
+<th>case</th>
+<th style="text-align: right;">本地相对线上差异</th>
+<th>判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>representative-min</td>
+<td style="text-align: right;">+0.46%</td>
+<td>基本一致</td>
+</tr>
+<tr>
+<td>representative-target</td>
+<td style="text-align: right;">-1.11%</td>
+<td>基本一致</td>
+</tr>
+<tr>
+<td>representative-max</td>
+<td style="text-align: right;">-5.40%</td>
+<td>可接受，需考虑分布和系统噪声</td>
+</tr>
+</tbody>
+</table>
+<p>差异收敛到约正负 5% 后，本地 benchmark 才适合作为 config tuning 的代理。此前基于全展开 rows 的 4x-6x 结论作废。</p>
+<h4>6. Pure GEMM 与 e2e 的差距</h4>
+<p>Quack pure GEMM 约 66.5% MFU，而 SonicMoE e2e forward/backward 约 32.1%/20.8%。差距可能来自：</p>
+<ul>
+<li>token dispatch、gather 和 combine；</li>
+<li>expert-M 不均衡与小矩阵尾部；</li>
+<li>跨 rank 通信和同步；</li>
+<li>activation、scatter/add 与额外 HBM 流量；</li>
+<li>backward 中更多中间结果和依赖链。</li>
+</ul>
+<p>因此，pure GEMM 已经较高效并不意味着 e2e 已经接近硬件峰值。优化优先级应由稳态 e2e trace 决定。</p>
+<h4>7. 工程产出</h4>
+<ul>
+<li>四路 benchmark 脚本与 JSON/Markdown 结果归档。</li>
+<li>H200 shape、expert distribution 和 MFU 统一口径。</li>
+<li>线上 compact-row 回放方法。</li>
+<li>调优前后 CSV、聚合脚本与组合图。</li>
+<li>SM90 tile/cluster/swizzle 调优指南。</li>
+</ul>
+<h4>8. 结论边界</h4>
+<ul>
+<li>DeepGEMM 在早期四路表中部分 shape 未预编译，SKIP 不代表 kernel 性能为 0。</li>
+<li>+0.46% / -1.11% / -5.40% 是本地与线上 latency 差异，不是优化收益。</li>
+<li>66.5% 是选定 shape 集上的平均值，不代表所有 H200 GEMM。</li>
+<li>没有 NCU 证据的阶段不声称具体 stall 原因，只陈述时间线、shape 和理论分析。</li>
+</ul>
+<h4>9. 证据索引</h4>
+<ul>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/archive/four_way_benchmark_20260528/four_way_results.md" rel="noopener noreferrer" target="_blank">四路 benchmark 结果</a></li>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/archive/four_way_benchmark_20260528/four_way_results.json" rel="noopener noreferrer" target="_blank">四路 benchmark 原始 JSON</a></li>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/scripts/plot_h200_gemm_summary_2026_06_05.py" rel="noopener noreferrer" target="_blank">H200 汇总绘图脚本</a></li>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/Quack%E8%B0%83%E4%BC%98%E5%BC%80%E5%8F%91%E8%AE%B0%E5%BD%95%E5%85%AC%E5%BC%80%E7%89%88.md" rel="noopener noreferrer" target="_blank">Quack 调优开发记录</a></li>
+<li><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/references/sm90_tuning_guide.md" rel="noopener noreferrer" target="_blank">SM90 tuning guide</a></li>
+</ul></section><section class="evidence-section"><h2>14 shape × 3 分布配置调优</h2>
+<blockquote>
+<p>结论：不改 kernel 算法，只扩展 SM90 autotune 候选并按线上 compact-row 分布验证；目标 shape 约提升 5.3%，14 shapes x 3 expert distributions 聚合提升约 1.84%，weighted MFU 从 60.94% 提升到 62.06%。</p>
+</blockquote>
+<h4>1. 为什么做 config-level tuning</h4>
+<p>口径对齐后，Quack pure GEMM 已达到约 66.5% 平均 MFU。此时直接重写 kernel 成本高且证据不足，先验证 tile、cluster、persistent schedule 和 swizzle 的配置空间是否遗漏 H200/MoE 形状的更优点。</p>
+<p>目标不是寻找单个“冠军 shape”，而是：</p>
+<ul>
+<li>覆盖线上 min/target/max compact rows；</li>
+<li>扩展到 14 个 routed-row shape；</li>
+<li>用 random、balanced、skewed 三种 expert-M 分布检查稳健性；</li>
+<li>分别评估 gated up projection 和 down projection；</li>
+<li>保留失败配置与次优配置，避免只报告 best case。</li>
+</ul>
+<h4>2. 候选集</h4>
+<table>
+<thead>
+<tr>
+<th>候选集</th>
+<th>定义</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>before</td>
+<td>Quack 当前内置 SM90 搜索空间</td>
+<td>baseline</td>
+</tr>
+<tr>
+<td>current_after</td>
+<td>少量 H200/MoE 定向候选</td>
+<td>验证低风险扩展</td>
+</tr>
+<tr>
+<td>expanded_after</td>
+<td>基于合法现有配置派生 cluster/swizzle 变体</td>
+<td>扩大覆盖并避免 JIT 进程级失败</td>
+</tr>
+</tbody>
+</table>
+<p>主要维度包括 tile M/N、cluster M/N、ping-pong、dynamic persistent 和 max swizzle size。候选生成会去重，并在执行前检查 SM90 gated/out 的合法性。</p>
+<h4>3. Benchmark 设计</h4>
+<p>固定条件：</p>
+<ul>
+<li>H=3072，I=1536，16 experts，top-k=8；</li>
+<li>H200 BF16 峰值按 989 TFLOPS；</li>
+<li>每个 case 预热后多次计时，取重复组中位数；</li>
+<li>gated 与 out 分开计时，再计算加权总 latency/MFU；</li>
+<li>随机种子固定，输出完整 CSV。</li>
+</ul>
+<p>数据矩阵：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th style="text-align: right;">数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>compact-row shapes</td>
+<td style="text-align: right;">14</td>
+</tr>
+<tr>
+<td>expert-M distributions</td>
+<td style="text-align: right;">3</td>
+</tr>
+<tr>
+<td>operators</td>
+<td style="text-align: right;">2</td>
+</tr>
+<tr>
+<td>candidate sets</td>
+<td style="text-align: right;">3</td>
+</tr>
+</tbody>
+</table>
+<h4>4. 结果</h4>
+<table>
+<thead>
+<tr>
+<th>口径</th>
+<th style="text-align: right;">before</th>
+<th style="text-align: right;">after</th>
+<th style="text-align: right;">变化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>目标线上 shape</td>
+<td style="text-align: right;">baseline</td>
+<td style="text-align: right;">tuned</td>
+<td style="text-align: right;">约 +5.3%</td>
+</tr>
+<tr>
+<td>14 shapes x 3 distributions 聚合 latency</td>
+<td style="text-align: right;">baseline</td>
+<td style="text-align: right;">tuned</td>
+<td style="text-align: right;">约 +1.84%</td>
+</tr>
+<tr>
+<td>weighted MFU</td>
+<td style="text-align: right;">60.94%</td>
+<td style="text-align: right;">62.06%</td>
+<td style="text-align: right;">+1.12 pp</td>
+</tr>
+</tbody>
+</table>
+<p>目标 shape 的提升高于全局平均，说明 schedule 对特定 compact rows 有价值；全局只有 1%-2% 则说明内置搜索空间已较成熟，新增候选不能在所有分布上稳定获益。</p>
+<h4>5. 开发流程</h4>
+<h4>5.1 最小 target sweep</h4>
+<pre><code class="language-bash">PYTHONPATH=[redacted-path]/sonic-moe:$PYTHONPATH \
+python scripts/tune_quack_gemm_h200.py \
+  --cases online_target \
+  --candidate-set extended
+</code></pre>
+<h4>5.2 before/after 扩展 shape 对照</h4>
+<pre><code class="language-bash">PYTHONPATH=[redacted-path]/sonic-moe:$PYTHONPATH \
+python scripts/compare_quack_gemm_before_after_h200.py
+</code></pre>
+<h4>5.3 三分布完整计划</h4>
+<pre><code class="language-bash">PYTHONPATH=[redacted-path]/sonic-moe:$PYTHONPATH \
+python scripts/execute_quack_gemm_h200_plan.py \
+  --distributions random,balanced,skewed
+</code></pre>
+<p>脚本默认从本目录的 data/ 读写 CSV，不依赖整理者本机的绝对路径。执行 benchmark 仍需安装兼容的 PyTorch、CUDA、Quack/SonicMoE 环境和 H200 GPU。</p>
+<h4>6. 数据与脚本映射</h4>
+<table>
+<thead>
+<tr>
+<th>产物</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/data/quack_gemm_h200_before_after_more_inputs_2026-06-04.csv" rel="noopener noreferrer" target="_blank">before/after CSV</a></td>
+<td>14 shape 的直接对照</td>
+</tr>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/data/quack_gemm_h200_plan_summary_2026-06-05.csv" rel="noopener noreferrer" target="_blank">plan summary CSV</a></td>
+<td>shape、分布、算子、候选集明细</td>
+</tr>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/data/quack_gemm_h200_plan_aggregate_2026-06-05.csv" rel="noopener noreferrer" target="_blank">aggregate CSV</a></td>
+<td>gated + out 聚合结果</td>
+</tr>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/data/quack_gemm_h200_plan_top_configs_2026-06-05.csv" rel="noopener noreferrer" target="_blank">top configs CSV</a></td>
+<td>每组最佳配置</td>
+</tr>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/scripts/tune_quack_gemm_h200.py" rel="noopener noreferrer" target="_blank">tuning script</a></td>
+<td>最小候选 sweep</td>
+</tr>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/scripts/execute_quack_gemm_h200_plan.py" rel="noopener noreferrer" target="_blank">plan script</a></td>
+<td>14 shape x 3 分布完整执行</td>
+</tr>
+<tr>
+<td><a href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/gemm_sonicmoe/scripts/summarize_quack_gemm_h200_tuning.py" rel="noopener noreferrer" target="_blank">summary script</a></td>
+<td>Markdown 结果汇总</td>
+</tr>
+</tbody>
+</table>
+<h4>7. 失败与约束</h4>
+<ul>
+<li>某些 tile/cluster 组合不是抛 Python 异常，而是使 JIT 进程终止，因此 expanded 集合只从已知合法配置派生。</li>
+<li>expert-M 的总和相同不代表性能相同，skew 会改变 tail 和负载均衡。</li>
+<li>autotune 首轮包含 JIT 成本，必须预热后计时。</li>
+<li>当前没有形成通用 dispatch policy，只证明候选配置在选定 workload 上有小幅收益。</li>
+<li>这是 config tuning，不是 CUDA/CuTe kernel 重写；简历应使用“扩展候选并验证”，不使用“重构核心 kernel”。</li>
+</ul></section>
+    <section class="callout warning"><strong>结论边界</strong><p>66.5% 是 pure GEMM 的选定 shape 平均值，不能等同于 SonicMoE 端到端 MFU；1.84% 来自候选配置扩展，不是重写 CUDA/CuTe kernel。</p></section>
+  </article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Evidence Standard</h3><ul class="sidebar-list"><li><span>Problem</span><strong>可复现定义</strong></li><li><span>Method</span><strong>控制变量 / Oracle</strong></li><li><span>Result</span><strong>同口径对照</strong></li><li><span>Boundary</span><strong>不做过度外推</strong></li></ul></div><a class="button primary" href="../projects.html">返回全部项目</a><a class="button" href="../writing.html">技术文章与发布计划</a></aside></div></section>
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng. Evidence-led AI Infra portfolio.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">知乎</a><a href="../resume.html">Resume</a></div></div></footer></body></html>
