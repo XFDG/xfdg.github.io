@@ -1,0 +1,247 @@
+name: Migrate and publish personal website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/migrate-personal-site.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: personal-website-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the new personal-site repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Copy the former deployment source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/haoran-site-source
+          git clone --depth 1 --branch gh-pages \
+            https://github.com/XFDG/tensorflow_musa_extension.git \
+            /tmp/haoran-site-source
+          rm -rf /tmp/haoran-site-source/.git
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name .github -exec rm -rf {} +
+          cp -a /tmp/haoran-site-source/. .
+
+      - name: Adapt root-domain links and public writing profiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/patch_site.py <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path('.')
+          site = 'https://xfdg.github.io/'
+          csdn = 'https://blog.csdn.net/XFDG01'
+          zhihu = 'https://www.zhihu.com/people/xian-feng-dao-gu-73-49'
+
+          for name in ('pages-probe.json', 'deployment-status.json'):
+              (root / name).unlink(missing_ok=True)
+          (root / '.nojekyll').touch()
+
+          platform_cards = f'''\n    <section class="section compact section-line" aria-labelledby="publishing-platforms-title">
+                <div class="shell">
+                  <div class="section-title-row reveal">
+                    <div><span class="section-kicker">Publishing Channels / 发布渠道</span><h2 id="publishing-platforms-title">网站负责归档，外部平台负责完整分发。</h2></div>
+                  </div>
+                  <div class="card-grid two">
+                    <a class="card article-card reveal" href="{csdn}" target="_blank" rel="me noopener noreferrer">
+                      <div class="article-meta"><span class="project-number">CSDN · XFDG01</span><span class="badge progress">ENGINEERING</span></div>
+                      <h3>工程教程与实验复盘</h3><p>发布环境搭建、代码路径、Benchmark、算子优化过程和可复现工程记录。</p>
+                      <div class="card-footer-link"><span>访问 CSDN 技术博客</span><span>↗</span></div>
+                    </a>
+                    <a class="card article-card reveal" href="{zhihu}" target="_blank" rel="me noopener noreferrer">
+                      <div class="article-meta"><span class="project-number">ZHIHU · 仙风道骨</span><span class="badge planned">ANALYSIS</span></div>
+                      <h3>机制解释与观点讨论</h3><p>发布系统机制、技术路线比较、论文解读和更具讨论性的 AI Infra 内容。</p>
+                      <div class="card-footer-link"><span>访问知乎主页</span><span>↗</span></div>
+                    </a>
+                  </div>
+                </div>
+              </section>\n'''
+
+          for path in sorted(root.rglob('*.html')):
+              rel = path.relative_to(root).as_posix()
+              text = path.read_text(encoding='utf-8')
+              text = text.replace('https://xfdg.github.io/tensorflow_musa_extension/', site)
+              text = text.replace('https://blog.csdn.net/XFDG01?spm=1000.2115.3001.5343', csdn)
+
+              canonical = site if rel == 'index.html' else site + rel
+              if 'rel="canonical"' not in text:
+                  text = text.replace('  <title>', f'  <link rel="canonical" href="{canonical}">\n  <title>', 1)
+              if rel == '404.html' and 'name="robots"' not in text:
+                  text = text.replace('<meta name="viewport" content="width=device-width, initial-scale=1">', '<meta name="viewport" content="width=device-width, initial-scale=1">\n  <meta name="robots" content="noindex,nofollow">', 1)
+
+              footer_at = text.rfind('<footer')
+              if footer_at >= 0:
+                  before, footer = text[:footer_at], text[footer_at:]
+                  if csdn not in footer:
+                      links = (f'<a href="{csdn}" target="_blank" rel="me noopener noreferrer">CSDN</a>'
+                               f'<a href="{zhihu}" target="_blank" rel="me noopener noreferrer">知乎</a>')
+                      footer = footer.replace('<a href="resume.html">Resume</a>', links + '<a href="resume.html">Resume</a>', 1)
+                  text = before + footer
+
+              if rel == 'index.html':
+                  hero_start = text.find('<div class="hero-links"')
+                  hero_end = text.find('<div class="hero-meta">', hero_start)
+                  if hero_start >= 0 and hero_end >= 0 and csdn not in text[hero_start:hero_end]:
+                      anchor = '<a href="https://github.com/XFDG" target="_blank" rel="noreferrer"><span aria-hidden="true">↗</span> github.com/XFDG</a>'
+                      extra = (anchor + f'\n            <a href="{csdn}" target="_blank" rel="me noopener noreferrer"><span aria-hidden="true">↗</span> CSDN / XFDG01</a>'
+                               f'\n            <a href="{zhihu}" target="_blank" rel="me noopener noreferrer"><span aria-hidden="true">↗</span> 知乎主页</a>')
+                      hero = text[hero_start:hero_end].replace(anchor, extra, 1)
+                      text = text[:hero_start] + hero + text[hero_end:]
+
+              if rel == 'writing.html':
+                  text = text.replace(
+                      '文章栏目不追求知识点数量，而是围绕真实问题组织：先给出系统背景，再解释执行路径、指标和实验，最后明确结论边界。首版内容以文章规划与摘要为主。',
+                      '本站负责沉淀项目档案、实验摘要与长期写作目录；完整工程长文同步发布到 CSDN，适合讨论与观点交流的内容发布到知乎。文章仍围绕系统背景、执行路径、指标、实验和结论边界组织。'
+                  )
+                  if 'Publishing Channels / 发布渠道' not in text:
+                      start = text.find('<section class="page-hero">')
+                      end = text.find('    </section>', start)
+                      text = text[:end + len('    </section>')] + '\n' + platform_cards + text[end + len('    </section>'):]
+                  old = '<div class="button-row"><a class="button primary" href="roadmap.html">查看发布计划</a><a class="button" href="projects.html">项目证据</a></div>'
+                  new = (f'<div class="button-row"><a class="button primary" href="roadmap.html">查看发布计划</a>'
+                         f'<a class="button" href="{csdn}" target="_blank" rel="me noopener noreferrer">CSDN 技术博客 ↗</a>'
+                         f'<a class="button" href="{zhihu}" target="_blank" rel="me noopener noreferrer">知乎主页 ↗</a></div>')
+                  text = text.replace(old, new)
+
+              if rel == 'contact.html' and 'Publishing Channels / 发布渠道' not in text:
+                  marker = '    <section class="section section-line">\n      <div class="shell">\n        <div class="section-title-row reveal">\n          <div><span class="section-kicker">Good Topics / 适合交流</span>'
+                  text = text.replace(marker, platform_cards + '\n' + marker, 1)
+
+              path.write_text(text, encoding='utf-8')
+
+          manifest = root / 'assets/site.webmanifest'
+          if manifest.exists():
+              data = json.loads(manifest.read_text(encoding='utf-8'))
+              data['start_url'] = '/'
+              data['scope'] = '/'
+              manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          sitemap = root / 'sitemap.xml'
+          if sitemap.exists():
+              sitemap.write_text(sitemap.read_text(encoding='utf-8').replace('https://xfdg.github.io/tensorflow_musa_extension/', site), encoding='utf-8')
+          (root / 'robots.txt').write_text('User-agent: *\nAllow: /\n\nSitemap: https://xfdg.github.io/sitemap.xml\n', encoding='utf-8')
+          (root / 'README.md').write_text(f'''# Haoran's AI Infra Lab
+
+          Personal portfolio and public engineering notebook for Haoran Feng / 冯浩然.
+
+          - Website: {site}
+          - GitHub: https://github.com/XFDG
+          - CSDN: {csdn}
+          - Zhihu: {zhihu}
+          - Email: 225010160@link.cuhk.edu.cn
+
+          The website is the canonical portfolio and content index. CSDN hosts engineering tutorials and experiment retrospectives; Zhihu hosts mechanism explanations, comparisons and discussion-oriented writing.
+          ''', encoding='utf-8')
+          PY
+          python /tmp/patch_site.py
+
+      - name: Validate the migrated static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+          from urllib.parse import urlsplit
+          root = Path('.')
+          html = sorted(root.rglob('*.html'))
+          assert html
+          missing = []
+          for page in html:
+              text = page.read_text(encoding='utf-8')
+              ids = re.findall(r'\bid=["\']([^"\']+)', text)
+              assert len(ids) == len(set(ids)), f'duplicate ids in {page}'
+              for target in re.findall(r'\b(?:href|src)=["\']([^"\']+)', text):
+                  if target.startswith(('#', 'mailto:', 'tel:', 'javascript:', 'data:')):
+                      continue
+                  parsed = urlsplit(target)
+                  if parsed.scheme or parsed.netloc or not parsed.path:
+                      continue
+                  candidate = (page.parent / parsed.path).resolve()
+                  if parsed.path.endswith('/'):
+                      candidate = candidate / 'index.html'
+                  if not candidate.exists():
+                      missing.append(f'{page} -> {target}')
+          index = (root/'index.html').read_text(encoding='utf-8')
+          writing = (root/'writing.html').read_text(encoding='utf-8')
+          contact = (root/'contact.html').read_text(encoding='utf-8')
+          assert 'blog.csdn.net/XFDG01' in index and 'blog.csdn.net/XFDG01' in writing
+          assert 'zhihu.com/people/xian-feng-dao-gu-73-49' in writing and 'zhihu.com/people/xian-feng-dao-gu-73-49' in contact
+          assert 'tensorflow_musa_extension/' not in index
+          assert not missing, '; '.join(missing)
+          json.loads((root/'assets/site.webmanifest').read_text(encoding='utf-8'))
+          print(f'validated {len(html)} HTML files')
+          PY
+
+      - name: Commit the clean website source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Launch Haoran AI Infra personal website'
+          git push origin HEAD:main
+
+      - name: Enable GitHub Pages from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}" \
+            -f homepage='https://xfdg.github.io/' \
+            -f description="Haoran Feng's AI Infra portfolio: LLM systems, RL infrastructure, GPU kernels and performance engineering." >/dev/null
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" -f 'source[branch]=main' -f 'source[path]=/' >/dev/null
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/pages" -f 'source[branch]=main' -f 'source[path]=/' >/dev/null
+          fi
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
+
+      - name: Verify the root-domain deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_URL: https://xfdg.github.io/
+        shell: bash
+        run: |
+          set -euo pipefail
+          live=false; http_status=000; pages_status=unknown
+          for attempt in $(seq 1 60); do
+            pages_status="$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.status // "unknown"' 2>/dev/null || echo unknown)"
+            http_status="$(curl -L -sS -o /tmp/site-index.html -w '%{http_code}' "$SITE_URL" || true)"
+            if [[ "$http_status" == 200 ]] && grep -q 'Haoran Feng' /tmp/site-index.html \
+              && grep -q 'blog.csdn.net/XFDG01' /tmp/site-index.html \
+              && grep -q 'zhihu.com/people/xian-feng-dao-gu-73-49' /tmp/site-index.html; then
+              live=true; break
+            fi
+            sleep 5
+          done
+          checked_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          jq -n --argjson live "$live" --arg url "$SITE_URL" \
+            --arg http_status "$http_status" --arg pages_status "$pages_status" \
+            --arg checked_at "$checked_at" \
+            '{live:$live,url:$url,http_status:$http_status,pages_status:$pages_status,checked_at:$checked_at}' \
+            > deployment-status.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add deployment-status.json
+          git commit -m 'Record website deployment status [skip ci]'
+          git push origin HEAD:main
+          [[ "$live" == true ]]
