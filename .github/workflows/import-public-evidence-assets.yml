@@ -1,0 +1,72 @@
+name: Import public evidence figures
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/import-public-evidence-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Copy public redacted figures from ICS6201 me
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/ics6201-public
+          git clone --depth 1 --branch me https://github.com/XFDG/ICS6201.git /tmp/ics6201-public
+
+          mkdir -p assets/projects/router-replay \
+                   assets/projects/flashinfer \
+                   assets/projects/gemm \
+                   assets/projects/drone \
+                   assets/projects/cot
+
+          cp /tmp/ics6201-public/doc/work_records/r3/assets/r3_engineering_progress_abc_validation_2026-06-15.png \
+             assets/projects/router-replay/r3-engineering-progress.png
+          cp /tmp/ics6201-public/doc/work_records/r3/assets/r3_vllm_tp2_cuda_graph_hang_flow_2026-06-25.png \
+             assets/projects/flashinfer/cuda-graph-hang-flow.png
+          cp /tmp/ics6201-public/doc/work_records/r3/assets/vllm_tp2_rootcause_matrix_2026-06-25.png \
+             assets/projects/flashinfer/rootcause-matrix.png
+          cp /tmp/ics6201-public/doc/work_records/gemm_sonicmoe/scripts/h200_gemm_summary_2026-06-05_overview.png \
+             assets/projects/gemm/h200-path-overview.png
+          cp /tmp/ics6201-public/doc/work_records/gemm_sonicmoe/scripts/quack_gemm_h200_plan_2026-06-05_summary.png \
+             assets/projects/gemm/quack-plan-summary.png
+          cp /tmp/ics6201-public/doc/work_records/ics6201/assets/ics6201_primary_completion_2026-06-09.png \
+             assets/projects/drone/primary-completion.png
+          cp /tmp/ics6201-public/doc/cot-main/assets/cot_main_pipeline_overview.png \
+             assets/projects/cot/cot-pipeline.png
+
+          for f in \
+            assets/projects/router-replay/r3-engineering-progress.png \
+            assets/projects/flashinfer/cuda-graph-hang-flow.png \
+            assets/projects/flashinfer/rootcause-matrix.png \
+            assets/projects/gemm/h200-path-overview.png \
+            assets/projects/gemm/quack-plan-summary.png \
+            assets/projects/drone/primary-completion.png \
+            assets/projects/cot/cot-pipeline.png; do
+            test -s "$f"
+            file "$f" | grep -q 'PNG image data'
+          done
+
+      - name: Commit assets and remove temporary inspection files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/inspect-ics6201.yml \
+                .github/ics6201-inspection.txt \
+                .github/workflows/import-public-evidence-assets.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Add public evidence figures and clean inspection files'
+          git push origin HEAD:main
