@@ -1,0 +1,87 @@
+name: Run corrected hardened evidence refresh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/refresh-public-evidence-v3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: corrected-public-evidence-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install tooling and clone public evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check markdown beautifulsoup4
+          rm -rf /tmp/ics6201-evidence
+          git clone --depth 1 --branch me https://github.com/XFDG/ICS6201.git /tmp/ics6201-evidence
+
+      - name: Generate, redact and validate the portfolio
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import textwrap
+
+          workflow = Path('.github/workflows/refresh-public-evidence.yml').read_text(encoding='utf-8')
+          blocks = re.findall(r"python - <<'PY'\n(.*?)\n          PY", workflow, flags=re.S)
+          if len(blocks) < 2:
+              raise SystemExit(f'expected two Python blocks, found {len(blocks)}')
+
+          generator = textwrap.dedent(blocks[0])
+          needle = "    text = text.replace('/path/to/', '[redacted-path]/')"
+          replacement = "\n".join([
+              "    text = text.replace('/path/to/', '[redacted-path]/')",
+              "    for sensitive in (",
+              "        'yzhao04-cpu-shanghai:32196',",
+              "        'yzhao04-gpu-shanghai:32198',",
+              "        'yzhao04',",
+              "        '32196',",
+              "        '32198',",
+              "        '/volume/yzhao04',",
+              "        '/shared/storage/',",
+              "    ):",
+              "        text = text.replace(sensitive, '[redacted]')",
+          ])
+          if needle not in generator:
+              raise SystemExit('redaction insertion point not found')
+          generator = generator.replace(needle, replacement, 1)
+          compile(generator, '<portfolio-generator>', 'exec')
+          exec(generator, {})
+
+          validator = textwrap.dedent(blocks[1])
+          compile(validator, '<portfolio-validator>', 'exec')
+          exec(validator, {})
+          PY
+
+      - name: Commit only site content
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md index.html projects.html experience.html resume.html writing.html roadmap.html styles.css sitemap.xml projects/
+          git commit -m 'Update portfolio with public AI Infra evidence'
+          git push origin HEAD:main
+
+      - name: Trigger Pages rebuild
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
