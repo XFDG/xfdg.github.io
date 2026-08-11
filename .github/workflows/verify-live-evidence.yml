@@ -1,0 +1,69 @@
+name: Verify live public evidence pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/verify-live-evidence.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify public HTML and figures
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://xfdg.github.io'
+          live=false
+          for attempt in $(seq 1 48); do
+            root_code=$(curl -L -sS -o /tmp/root.html -w '%{http_code}' "$base/" || true)
+            flash_code=$(curl -L -sS -o /tmp/flash.html -w '%{http_code}' "$base/projects/flashinfer-ftz.html" || true)
+            router_code=$(curl -L -sS -o /tmp/router.html -w '%{http_code}' "$base/projects/router-replay.html" || true)
+            oe_code=$(curl -L -sS -o /tmp/oe.html -w '%{http_code}' "$base/projects/oe-async.html" || true)
+            gemm_code=$(curl -L -sS -o /tmp/gemm.html -w '%{http_code}' "$base/projects/gemm-profiling.html" || true)
+            writing_code=$(curl -L -sS -o /tmp/writing.html -w '%{http_code}' "$base/writing.html" || true)
+            figure_code=$(curl -L -sS -o /tmp/figure.png -w '%{http_code}' "$base/assets/projects/flashinfer/rootcause-matrix.png" || true)
+            if [[ "$root_code" == 200 && "$flash_code" == 200 && "$router_code" == 200 && "$oe_code" == 200 && "$gemm_code" == 200 && "$writing_code" == 200 && "$figure_code" == 200 ]] \
+              && grep -q 'FlashInfer CUDA Graph Hang' /tmp/root.html \
+              && grep -q '0x80000000' /tmp/flash.html \
+              && grep -q '36×–145×' /tmp/router.html \
+              && grep -q '不能写成多卡 fused-hash' /tmp/oe.html \
+              && grep -q '195,976' /tmp/gemm.html \
+              && grep -q '没有 CSDN / 知乎写入权限' /tmp/writing.html; then
+              live=true
+              break
+            fi
+            sleep 5
+          done
+          checked_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          cat > live-evidence-verification.json <<JSON
+          {
+            "verified": $live,
+            "checked_at": "$checked_at",
+            "root_status": "$root_code",
+            "flashinfer_status": "$flash_code",
+            "router_status": "$router_code",
+            "oe_status": "$oe_code",
+            "gemm_status": "$gemm_code",
+            "writing_status": "$writing_code",
+            "figure_status": "$figure_code",
+            "contains_flashinfer": $(grep -q 'FlashInfer CUDA Graph Hang' /tmp/root.html && echo true || echo false),
+            "contains_bitwise_fix": $(grep -q '0x80000000' /tmp/flash.html && echo true || echo false),
+            "contains_router_boundary": $(grep -q '不能据此声称' /tmp/router.html && echo true || echo false),
+            "contains_platform_permission_note": $(grep -q '没有 CSDN / 知乎写入权限' /tmp/writing.html && echo true || echo false)
+          }
+          JSON
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add live-evidence-verification.json
+          git commit -m 'Record live evidence verification [skip ci]'
+          git push origin HEAD:main
+          [[ "$live" == true ]]
