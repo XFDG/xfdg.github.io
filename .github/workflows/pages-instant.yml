@@ -1,0 +1,48 @@
+name: Inspect GitHub Pages API state
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/pages-instant.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Record current Pages state immediately
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set +e
+          before="$(gh api "repos/${GITHUB_REPOSITORY}/pages" 2>&1)"; before_code=$?
+          if [[ $before_code -ne 0 ]]; then
+            configure="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/pages" -f 'source[branch]=main' -f 'source[path]=/' 2>&1)"; configure_code=$?
+          else
+            configure="$(gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" -f 'source[branch]=main' -f 'source[path]=/' 2>&1)"; configure_code=$?
+          fi
+          after="$(gh api "repos/${GITHUB_REPOSITORY}/pages" 2>&1)"; after_code=$?
+          build="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" 2>&1)"; build_code=$?
+          http_status="$(curl -L -sS -o /tmp/index.html -w '%{http_code}' https://xfdg.github.io/ || true)"
+          contains_haoran=false
+          [[ -f /tmp/index.html ]] && grep -q 'Haoran Feng' /tmp/index.html && contains_haoran=true
+          jq -n --arg before "$before" --argjson before_code "$before_code" \
+            --arg configure "$configure" --argjson configure_code "$configure_code" \
+            --arg after "$after" --argjson after_code "$after_code" \
+            --arg build "$build" --argjson build_code "$build_code" \
+            --arg http_status "$http_status" --argjson contains_haoran "$contains_haoran" \
+            '{before:{code:$before_code,output:$before},configure:{code:$configure_code,output:$configure},after:{code:$after_code,output:$after},build:{code:$build_code,output:$build},http_status:$http_status,contains_haoran:$contains_haoran}' > pages-instant.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pages-instant.json
+          git commit -m 'Record immediate Pages state [skip ci]'
+          git push origin HEAD:main
