@@ -1,4 +1,4 @@
-name: Inspect GitHub Pages API state
+name: Verify public website content
 
 on:
   push:
@@ -9,40 +9,36 @@ on:
 
 permissions:
   contents: write
-  pages: write
 
 jobs:
-  inspect:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Record current Pages state immediately
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify root and writing pages
         shell: bash
         run: |
-          set +e
-          before="$(gh api "repos/${GITHUB_REPOSITORY}/pages" 2>&1)"; before_code=$?
-          if [[ $before_code -ne 0 ]]; then
-            configure="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/pages" -f 'source[branch]=main' -f 'source[path]=/' 2>&1)"; configure_code=$?
-          else
-            configure="$(gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" -f 'source[branch]=main' -f 'source[path]=/' 2>&1)"; configure_code=$?
-          fi
-          after="$(gh api "repos/${GITHUB_REPOSITORY}/pages" 2>&1)"; after_code=$?
-          build="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" 2>&1)"; build_code=$?
-          http_status="$(curl -L -sS -o /tmp/index.html -w '%{http_code}' https://xfdg.github.io/ || true)"
-          contains_haoran=false
-          [[ -f /tmp/index.html ]] && grep -q 'Haoran Feng' /tmp/index.html && contains_haoran=true
-          jq -n --arg before "$before" --argjson before_code "$before_code" \
-            --arg configure "$configure" --argjson configure_code "$configure_code" \
-            --arg after "$after" --argjson after_code "$after_code" \
-            --arg build "$build" --argjson build_code "$build_code" \
-            --arg http_status "$http_status" --argjson contains_haoran "$contains_haoran" \
-            '{before:{code:$before_code,output:$before},configure:{code:$configure_code,output:$configure},after:{code:$after_code,output:$after},build:{code:$build_code,output:$build},http_status:$http_status,contains_haoran:$contains_haoran}' > pages-instant.json
+          set -euo pipefail
+          root_status="$(curl -L -sS -o /tmp/index.html -w '%{http_code}' https://xfdg.github.io/ || true)"
+          writing_status="$(curl -L -sS -o /tmp/writing.html -w '%{http_code}' https://xfdg.github.io/writing.html || true)"
+          contains_haoran=false; contains_csdn=false; contains_zhihu=false; writing_channels=false
+          [[ "$root_status" == 200 ]] && grep -q 'Haoran Feng' /tmp/index.html && contains_haoran=true
+          grep -q 'blog.csdn.net/XFDG01' /tmp/index.html && contains_csdn=true
+          grep -q 'zhihu.com/people/xian-feng-dao-gu-73-49' /tmp/index.html && contains_zhihu=true
+          [[ "$writing_status" == 200 ]] && grep -q 'Publishing Channels / 发布渠道' /tmp/writing.html && writing_channels=true
+          verified=false
+          [[ "$contains_haoran" == true && "$contains_csdn" == true && "$contains_zhihu" == true && "$writing_channels" == true ]] && verified=true
+          checked_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          jq -n --argjson verified "$verified" --arg root_status "$root_status" --arg writing_status "$writing_status" \
+            --argjson contains_haoran "$contains_haoran" --argjson contains_csdn "$contains_csdn" \
+            --argjson contains_zhihu "$contains_zhihu" --argjson writing_channels "$writing_channels" \
+            --arg checked_at "$checked_at" \
+            '{verified:$verified,root_status:$root_status,writing_status:$writing_status,contains_haoran:$contains_haoran,contains_csdn:$contains_csdn,contains_zhihu:$contains_zhihu,writing_channels:$writing_channels,checked_at:$checked_at}' > live-verification.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add pages-instant.json
-          git commit -m 'Record immediate Pages state [skip ci]'
+          git add live-verification.json
+          git commit -m 'Record live website verification [skip ci]'
           git push origin HEAD:main
+          [[ "$verified" == true ]]
