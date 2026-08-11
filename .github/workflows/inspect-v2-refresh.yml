@@ -1,0 +1,34 @@
+name: Inspect hardened portfolio refresh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inspect-v2-refresh.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Record hardened refresh state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs?per_page=30" \
+            --jq '{checked_at: now|todate, runs: [.workflow_runs[] | select(.name == "Run hardened public evidence refresh") | {id,status,conclusion,head_sha,created_at,updated_at,html_url}]}' \
+            > v2-refresh-status.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add v2-refresh-status.json
+          git commit -m 'Record hardened refresh state [skip ci]'
+          git push origin HEAD:main
