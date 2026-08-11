@@ -1,0 +1,105 @@
+name: Inspect ICS6201 me branch docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inspect-ics6201.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone and summarize ICS6201 me branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/ICS6201
+          git clone --depth 1 --branch me https://github.com/XFDG/ICS6201.git /tmp/ICS6201
+          cd /tmp/ICS6201
+          git fetch --depth 1 origin main:refs/remotes/origin/main || true
+
+          report="$GITHUB_WORKSPACE/.github/ics6201-inspection.txt"
+          : > "$report"
+          {
+            echo '=== REPOSITORY ==='
+            echo 'repository: XFDG/ICS6201'
+            echo 'branch: me'
+            echo "commit: $(git rev-parse HEAD)"
+            echo "commit_date: $(git show -s --format=%cI HEAD)"
+            echo
+            echo '=== RECENT COMMITS ==='
+            git log --oneline --decorate -20
+            echo
+            echo '=== DIFF STAT: main...me ==='
+            git diff --stat origin/main...HEAD || true
+            echo
+            echo '=== COMPLETE FILE INVENTORY ==='
+            find . -path './.git' -prune -o -type f -printf '%P\t%k KB\n' | sort
+            echo
+            echo '=== DOC INVENTORY WITH FILE TYPES ==='
+            if [[ -d doc ]]; then
+              while IFS= read -r -d '' f; do
+                printf '%s\t%s\n' "$f" "$(file -b "$f")"
+              done < <(find doc -type f -print0 | sort -z)
+            else
+              echo 'doc directory not found'
+            fi
+            echo
+            echo '=== README / PROJECT OVERVIEW FILES ==='
+            for f in README README.md README.rst readme.md; do
+              if [[ -f "$f" ]]; then
+                echo
+                echo "----- FILE: $f -----"
+                sed -n '1,800p' "$f"
+              fi
+            done
+            echo
+            echo '=== DOC TEXT CONTENT ==='
+            if [[ -d doc ]]; then
+              while IFS= read -r -d '' f; do
+                mime="$(file -b --mime-type "$f")"
+                case "$mime" in
+                  text/*|application/json|application/xml|application/x-yaml|application/javascript)
+                    echo
+                    echo "----- FILE: $f -----"
+                    echo "mime: $mime"
+                    echo "lines: $(wc -l < "$f")"
+                    sed -n '1,1200p' "$f"
+                    ;;
+                  application/pdf)
+                    echo
+                    echo "----- PDF (metadata only): $f -----"
+                    if command -v pdfinfo >/dev/null 2>&1; then pdfinfo "$f" | sed -n '1,40p'; fi
+                    ;;
+                esac
+              done < <(find doc -type f -print0 | sort -z)
+            fi
+            echo
+            echo '=== RTL / SOFTWARE STRUCTURE ==='
+            find . -path './.git' -prune -o -type f \( -name '*.v' -o -name '*.sv' -o -name '*.vh' -o -name '*.py' -o -name '*.cpp' -o -name '*.c' -o -name '*.h' -o -name '*.tcl' -o -name '*.xdc' \) -print | sort
+            echo
+            echo '=== HDL MODULES ==='
+            grep -RInE '^[[:space:]]*module[[:space:]]+[A-Za-z_][A-Za-z0-9_$]*' --include='*.v' --include='*.sv' . | head -500 || true
+            echo
+            echo '=== TEST / SYNTHESIS / REPORT SIGNALS ==='
+            find . -path './.git' -prune -o -type f \( -iname '*test*' -o -iname '*tb*' -o -iname '*sim*' -o -iname '*report*' -o -iname '*timing*' -o -iname '*util*' -o -iname '*wave*' \) -print | sort | head -500
+          } >> "$report"
+
+      - name: Commit inspection report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/ics6201-inspection.txt
+          git commit -m 'Record ICS6201 documentation inspection [skip ci]'
+          git push origin HEAD:main
