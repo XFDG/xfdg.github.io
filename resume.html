@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="冯浩然公开版 AI Infra 简历。">
+  <meta name="theme-color" content="#07090d">
+  <link rel="canonical" href="https://xfdg.github.io/resume.html">
+  <title>公开简历 — Haoran Feng</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body data-page="resume">
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+      <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
+      <nav class="site-nav" aria-label="主导航">
+        <a href="index.html" data-nav="home">首页</a><a href="experience.html" data-nav="experience">经历</a><a href="projects.html" data-nav="projects">项目</a><a href="writing.html" data-nav="writing">文章</a><a href="roadmap.html" data-nav="roadmap">Roadmap</a><a href="contact.html" data-nav="contact">联系</a><a class="nav-cta" href="resume.html" data-nav="resume">公开简历</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero print-hidden">
+      <div class="shell page-hero-grid">
+        <div class="reveal">
+          <span class="eyebrow">Public Resume</span>
+          <h1><span class="gradient-text">公开版简历。</span></h1>
+          <p class="page-lead">已移除手机号、内部地址、未公开仓库和敏感项目名称。页面可直接打印为 PDF；正式投递时仍建议使用针对岗位定制的简历版本。</p>
+          <div class="button-row" style="margin-top:26px"><button class="button primary" type="button" onclick="window.print()">打印 / 保存为 PDF</button><a class="button" href="projects.html">查看项目证据</a></div>
+        </div>
+        <aside class="page-aside reveal"><span class="page-aside-label">Target Roles</span><strong>AI Infra · Inference · GPU Performance</strong><p>也适用于框架后端、算子优化、异构计算和 LLM Systems 相关岗位。</p></aside>
+      </div>
+    </section>
+
+    <section class="section compact section-line">
+      <div class="narrow">
+        <article class="resume-sheet reveal">
+          <header class="resume-header">
+            <div>
+              <h1>冯浩然 <span style="color:var(--muted);font-weight:500">Haoran Feng</span></h1>
+              <p style="margin:0">AI Infra / LLM Systems / GPU Performance Engineering</p>
+            </div>
+            <div class="resume-contact">
+              <a href="mailto:225010160@link.cuhk.edu.cn">225010160@link.cuhk.edu.cn</a>
+              <a href="https://github.com/XFDG" target="_blank" rel="noreferrer">github.com/XFDG</a>
+              <span>Shenzhen / Beijing · Expected 2027</span>
+            </div>
+          </header>
+
+          <section class="resume-section">
+            <h2>Profile</h2>
+            <p style="font-size:.88rem;margin:0;color:#aeb6c4">香港中文大学（深圳）集成电路与系统硕士在读，具备电子科学与计算机科学交叉背景。工程经历覆盖大型 C/C++ 软件、TensorFlow 国产 GPU 后端、大模型量化推理 Runtime，以及 8×H200 上的 veRL / Megatron-LM / vLLM MoE-RL 训练推理系统。关注训推一致性、GPU Kernel、推理优化与可复现实验。</p>
+          </section>
+
+          <section class="resume-section">
+            <h2>Education</h2>
+            <div class="resume-entry">
+              <div class="resume-entry-head"><div><h3>香港中文大学（深圳）</h3><span class="sub">集成电路与系统 · 硕士</span></div><span class="date">2025.09 — 2027.06（预计）</span></div>
+            </div>
+            <div class="resume-entry">
+              <div class="resume-entry-head"><div><h3>山东大学</h3><span class="sub">电子科学与技术 · 本科；计算机科学与技术 · 辅修</span></div><span class="date">2021.09 — 2025.06</span></div>
+              <ul><li>学业奖学金（前 20%）、特长奖学金（竞赛创新）；电子与计算机交叉课程基础。</li></ul>
+            </div>
+          </section>
+
+          <section class="resume-section">
+            <h2>Experience</h2>
+            <div class="resume-entry">
+              <div class="resume-entry-head"><div><h3>LLM Post-training & Inference Infrastructure</h3><span class="sub">企业 AI Infra 项目 · 脱敏展示</span></div><span class="date">2026.05 — 2026.07</span></div>
+              <ul>
+                <li>面向 8×H200 上的 MoE-RL 链路，打通 veRL + Megatron-LM + vLLM/SGLang 的 Baseline、R2 Record 与 R3 Router Replay 对照；定位 CUDA Graph / compiled sampler 路径超时并通过 eager 模式隔离变量。</li>
+                <li>设计 token-layer-topk 粒度的训推路由一致性诊断，统一 top-k overlap、route mismatch、有效 token-layer 数量与 logprob drift 指标；多组脱敏实验达到 overlap=1.0、mismatch=0.0。</li>
+                <li>对齐 MoE GEMM 的全展开 rows 与 compact rows 统计口径，修正 4×–6× 误判；基于线上 forward range 构造本地回放，并参与 SM90 config-level tuning，使目标 shape 加速约 5.3%。</li>
+              </ul>
+            </div>
+
+            <div class="resume-entry">
+              <div class="resume-entry-head"><div><h3>摩尔线程 · 算子与编译器优化实习生</h3><span class="sub">TensorFlow MUSA Extension</span></div><span class="date">2026.02 — 2026.05</span></div>
+              <ul>
+                <li>完成 muDNN GELU 接入、Fusion 链路修复与 benchmark 建设，推动整网 11 个 GELU 全部融合，真实 shape testcase 性能提升约 36.6%。</li>
+                <li>定位 shape tensor 错误进入 device path 的根因并重构 HostMemory 路径，修复长跑 OOM / 随机崩溃；相关长时验证保持稳定。</li>
+                <li>设计 Kernel Timing 宏与调试机制并合入公开 PR #57；优化 Logical_Or scalar broadcast 路径，使平均耗时由 21.2 μs 降至 10.7 μs。</li>
+              </ul>
+            </div>
+
+            <div class="resume-entry">
+              <div class="resume-entry-head"><div><h3>华为 · 通用软件工程师实习生</h3><span class="sub">大型 C/C++ 工程与静态分析工具链</span></div><span class="date">2024.08 — 2024.12</span></div>
+              <ul>
+                <li>通过日志分析与规则重构，将 CI 核心场景误报率降低约 35%；开发 Python 自动化代码生成工具，将规则开发与验证周期缩短约 40%，支持 60+ 条规则迭代。</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="resume-section">
+            <h2>Selected Projects</h2>
+            <div class="resume-entry">
+              <div class="resume-entry-head"><div><h3>高性能 LLM 量化推理 Runtime</h3><span class="sub">PyTorch Extension · CUTLASS · W8A8 / FP8 / AWQ</span></div><span class="date">2025.12 — 进行中</span></div>
+              <ul><li>设计轻量推理 Runtime，基于 CUTLASS 实现 W8A8 GEMM，探索量化数据结构、内存布局、Decode GEMV 与端到端正确性/性能验证。</li></ul>
+            </div>
+          </section>
+
+          <section class="resume-section">
+            <h2>Technical Stack</h2>
+            <p style="font-size:.84rem;margin:0;color:#aeb6c4"><strong style="color:#f5f7fb">Systems:</strong> veRL, Megatron-LM, vLLM, SGLang, TensorFlow, PyTorch Extension · <strong style="color:#f5f7fb">GPU:</strong> CUDA, CUTLASS, CuTe, DeepGEMM, Nsight Systems/Compute, MUSA · <strong style="color:#f5f7fb">Engineering:</strong> C++, Python, Linux, Docker, Git, Benchmark & Ablation.</p>
+          </section>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer print-hidden"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="projects.html">Projects</a></div></div></footer>
+</body>
+</html>
