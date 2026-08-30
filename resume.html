@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <meta content="冯浩然公开版 AI Infra 简历。" name="description"/>
-<meta content="#07090d" name="theme-color"/>
+<meta content="#f4f2ed" name="theme-color"/>
 <link href="https://xfdg.github.io/resume.html" rel="canonical"/>
 <title>公开简历 — Haoran Feng</title>
 <link href="assets/favicon.svg" rel="icon" type="image/svg+xml"/>
@@ -61,6 +61,14 @@
 <div class="resume-entry-head"><div><h3>山东大学</h3><span class="sub">电子科学与技术 · 本科；计算机科学与技术 · 辅修</span></div><span class="date">2021.09 — 2025.06</span></div>
 <ul><li>学业奖学金（前 20%）、特长奖学金（竞赛创新）；电子与计算机交叉课程基础。</li></ul>
 </div>
+</section><section class="resume-section" id="resume-research">
+<h2>Research</h2>
+<div class="resume-entry">
+<div class="resume-entry-head"><div><h3>From Structure to Preference: Token Weighting for Chain-of-Thought Distillation in Large Language Models</h3><span class="sub">Shankui Han, Zhaoyu Li, Weiwen Yuan, Yuyuan Yang, Haoran Feng, Jinke Ren</span></div><span class="date">AAAI 2027 · Under Review</span></div>
+<ul>
+<li>提出结构恢复、干预式 token 重要性加权监督与 DPO 组成的三阶段 CoT 蒸馏框架；Qwen2.5-7B-Instruct 在 GSM8K / SVAMP 上报告 94.01% / 94.00% 准确率。 <a href="https://openreview.net/forum?id=6eDZdA6IGW" rel="noreferrer" target="_blank">OpenReview ↗</a></li>
+</ul>
+</div>
 </section>
 <section class="resume-section">
 <h2>Experience</h2>
@@ -69,7 +77,7 @@
 <ul><li>FlashInfer CUDA Graph｜将 TP=2 FULL graph rollout hang 从下游 timeout 收敛到 FTZ 对 Lamport sentinel 的误判，回移位级修复并完成两卡最小复现、SASS 与模型级 graph replay 回归。</li><li>R3 Router Replay｜实现 [token, MoE-layer, top-k] route 采集、observe/replay 和 response-mask 指标闭环；8×H200 20-step 对照中 route mismatch 由约 17%-19% 降至 0，f_tau_2 降低约 36-145×、KL 降低约 4-7×。</li><li>OE Async｜在 GPU 侧维护 recent-token history 并以 Triton fused-hash 构造输入；TP1 严格矩阵较同步路径提升约 5.0%，TP2/TP4 安全路径 0 mismatch，decode 吞吐约 +4.6%/+3.0%。</li></ul>
 </div>
 <div class="resume-entry">
-<div class="resume-entry-head"><div><h3>摩尔线程 · 算子与编译器优化实习生</h3><span class="sub">TensorFlow MUSA Extension</span></div><span class="date">2026.02 — 2026.05</span></div>
+<div class="resume-entry-head"><div><h3>摩尔线程 · 算子与编译器优化实习生</h3><span class="sub">TensorFlow MUSA Extension</span></div><span class="date">2026.01 — 2026.04</span></div>
 <ul>
 <li>完成 muDNN GELU 接入、Fusion 链路修复与 benchmark 建设，推动整网 11 个 GELU 全部融合，真实 shape testcase 性能提升约 36.6%。</li>
 <li>定位 shape tensor 错误进入 device path 的根因并重构 HostMemory 路径，修复长跑 OOM / 随机崩溃；相关长时验证保持稳定。</li>
