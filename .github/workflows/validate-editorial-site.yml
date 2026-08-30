@@ -1,0 +1,84 @@
+name: Validate editorial portfolio redesign
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/validate-editorial-site.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install HTML parser
+        run: python -m pip install --disable-pip-version-check beautifulsoup4
+
+      - name: Validate HTML, links and visual constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check script.js
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          from bs4 import BeautifulSoup
+
+          root = Path('.')
+          pages = sorted(root.rglob('*.html'))
+          assert len(pages) >= 15, len(pages)
+
+          missing = []
+          for page in pages:
+              soup = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
+              assert soup.body, page
+              for node in soup.find_all(['a', 'img', 'script', 'link']):
+                  target = node.get('href') or node.get('src')
+                  if not target or target.startswith(('#', 'mailto:', 'tel:', 'javascript:', 'data:')):
+                      continue
+                  parsed = urlsplit(target)
+                  if parsed.scheme or parsed.netloc or not parsed.path:
+                      continue
+                  candidate = (page.parent / parsed.path).resolve()
+                  if parsed.path.endswith('/'):
+                      candidate /= 'index.html'
+                  if not candidate.exists():
+                      missing.append(f'{page}: {target}')
+          assert not missing, '\n'.join(missing)
+
+          index = (root / 'index.html').read_text(encoding='utf-8')
+          projects = (root / 'projects.html').read_text(encoding='utf-8')
+          mooncake = (root / 'projects/mooncake-contributions.html').read_text(encoding='utf-8')
+          css = (root / 'styles.css').read_text(encoding='utf-8')
+
+          for term in ['editorial-hero', 'Selected work', 'Mooncake', '2 merged']:
+              assert term in index, term
+          for term in ['work-list', 'OPEN SOURCE', 'Mooncake']:
+              assert term in projects, term
+          for term in ['#3660', '#3604', 'MERGED', '审阅中的修复']:
+              assert term in mooncake, term
+          for term in ['--paper: #f4f2ed', '.editorial-hero', '.work-row', '@media (max-width: 760px)']:
+              assert term in css, term
+          for banned in ['radial-gradient', 'box-shadow: var(--shadow)', 'background: linear-gradient(100deg']:
+              assert banned not in css, banned
+
+          assert css.count('{') == css.count('}'), 'unbalanced CSS braces'
+          print(f'validated {len(pages)} pages; no missing local resources')
+          PY
+
+      - name: Local serving smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m http.server 8000 >/tmp/site-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid' EXIT
+          sleep 1
+          curl -fsS http://127.0.0.1:8000/ | grep -q 'editorial-hero'
+          curl -fsS http://127.0.0.1:8000/projects.html | grep -q 'Mooncake'
+          curl -fsS http://127.0.0.1:8000/projects/mooncake-contributions.html | grep -q '#3660'
