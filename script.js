@@ -28,6 +28,21 @@
   const nav = document.querySelector('.site-nav');
   const page = document.body.dataset.page;
 
+  document.querySelectorAll('.brand-copy small').forEach((node) => {
+    node.textContent = 'AI Infrastructure';
+  });
+
+  if (nav) {
+    const orderedKeys = ['home', 'projects', 'experience', 'writing', 'contact', 'resume'];
+    const links = new Map();
+    nav.querySelectorAll('a[data-nav]').forEach((link) => links.set(link.dataset.nav, link));
+    nav.querySelectorAll('a[data-nav="roadmap"]').forEach((link) => link.remove());
+    orderedKeys.forEach((key) => {
+      const link = links.get(key);
+      if (link && link.isConnected) nav.appendChild(link);
+    });
+  }
+
   const updateHeader = () => {
     header?.classList.toggle('is-scrolled', window.scrollY > 8);
   };
