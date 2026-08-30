@@ -1,80 +1,77 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="TensorFlow MUSA Extension 算子、图优化、稳定性与性能工具项目。">
-  <meta name="theme-color" content="#07090d">
-  <link rel="canonical" href="https://xfdg.github.io/projects/musa-extension.html">
-  <title>TensorFlow MUSA Extension — Haoran Feng</title>
-  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../styles.css">
-  <script src="../script.js" defer></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="TensorFlow MUSA Extension 算子、图优化、稳定性与性能工具项目。" name="description"/>
+<meta content="#07090d" name="theme-color"/>
+<link href="https://xfdg.github.io/projects/musa-extension.html" rel="canonical"/>
+<title>TensorFlow MUSA Extension — Haoran Feng</title>
+<link href="../assets/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="../styles.css" rel="stylesheet"/>
+<script defer="" src="../script.js"></script>
 </head>
 <body data-page="projects">
-  <header class="site-header">
-    <div class="shell header-inner">
-      <a class="brand" href="../index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
-      <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
-      <nav class="site-nav" aria-label="主导航">
-        <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
-      </nav>
-    </div>
-  </header>
-
-  <main>
-    <section class="detail-hero">
-      <div class="shell">
-        <div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>TensorFlow MUSA Extension</span></div>
-        <span class="eyebrow reveal">Framework Backend · Heterogeneous Computing</span>
-        <h1 class="reveal"><span class="gradient-text">TensorFlow MUSA Extension：从框架语义到 Device Kernel 的真实工程链路。</span></h1>
-        <p class="detail-lead reveal">参与国产 GPU 上的 TensorFlow 设备扩展插件开发，工作覆盖算子注册、muDNN 接入、图融合、HostMemory 语义、长跑稳定性、热点算子优化与 Kernel Timing。它让我第一次完整处理“上层框架为什么会让底层执行出错或变慢”。</p>
-        <div class="detail-meta-grid reveal">
-          <div class="detail-meta"><span>Role</span><strong>Operator & Compiler Optimization Intern</strong></div>
-          <div class="detail-meta"><span>Period</span><strong>2026.02 — 2026.05</strong></div>
-          <div class="detail-meta"><span>Stack</span><strong>TensorFlow · C++ · MUSA · muDNN</strong></div>
-          <div class="detail-meta"><span>Evidence</span><strong>Public PR + Benchmarks</strong></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section compact section-line">
-      <div class="shell detail-layout">
-        <article class="detail-content">
-          <section id="overview">
-            <span class="section-kicker">01 / Overview</span>
-            <h2>一个设备插件，需要同时理解框架、运行时、图优化和 Kernel。</h2>
-            <div class="architecture">
-              <div class="arch-node"><strong>TensorFlow Graph</strong><span>op semantics</span></div>
-              <div class="arch-node"><strong>MUSA Plugin</strong><span>registration / placement</span></div>
-              <div class="arch-node"><strong>Graph Optimizer</strong><span>fusion / rewrite</span></div>
-              <div class="arch-node"><strong>muDNN / Kernel</strong><span>device compute</span></div>
-              <div class="arch-node"><strong>Benchmark</strong><span>correctness / latency</span></div>
-            </div>
-            <p>TensorFlow MUSA Extension 通过设备插件把自定义算子、Kernel 与图优化能力接入 TensorFlow。实际问题常常不在单个 Kernel 本身，而是在 placement、Host/Device 输入语义、Fusion Pattern、测试覆盖和调试可见性之间。</p>
-          </section>
-
-          <section id="gelu">
-            <span class="section-kicker">02 / Case Study A</span>
-            <h2>GELU Fusion：从“支持算子”走到“整网真正融合”。</h2>
-            <p>工作不只是增加一个 muDNN GELU 调用，而是补齐图融合链路和 benchmark，定位大图场景下部分 GELU 未命中 Fusion Pattern 的原因，并验证真实 shape。</p>
-            <div class="metric-grid">
-              <div class="metric-card"><strong>11 / 11</strong><span>整网 GELU 全部完成融合</span><small>GRAPH LEVEL</small></div>
-              <div class="metric-card"><strong>+36.6%</strong><span>真实 shape testcase 性能提升</span><small>ANONYMIZED SHAPE</small></div>
-              <div class="metric-card"><strong>muDNN</strong><span>后端实现接入</span><small>DEVICE PATH</small></div>
-            </div>
-            <ol class="number-list">
-              <li>确认 TensorFlow 原始子图的算子组合、属性和 dtype 是否满足 Fusion Pattern。</li>
-              <li>检查图优化 Pass 的匹配顺序与边界条件，避免只在微型单测中成功。</li>
-              <li>使用真实 shape 建立 correctness + latency benchmark，验证融合后的实际收益。</li>
-            </ol>
-          </section>
-
-          <section id="stability">
-            <span class="section-kicker">03 / Case Study B</span>
-            <h2>长跑 OOM / 随机崩溃：根因是 HostMemory 语义，而不是显存“不够”。</h2>
-            <p>整网推理长跑出现 OOM 和随机退出。通过逐层缩小范围，发现 shape tensor 在 <span class="mono">StridedSlice&lt;int32&gt;</span> / <span class="mono">Pack&lt;int32&gt;</span> 等链路中错误进入 device path，导致生命周期与访问路径异常。</p>
-            <pre class="code-block">Symptom:
+<header class="site-header">
+<div class="shell header-inner">
+<a class="brand" href="../index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+<button aria-expanded="false" aria-label="打开导航" class="menu-toggle" type="button"><span></span></button>
+<nav aria-label="主导航" class="site-nav">
+<a data-nav="home" href="../index.html">首页</a><a data-nav="experience" href="../experience.html">经历</a><a data-nav="projects" href="../projects.html">项目</a><a data-nav="writing" href="../writing.html">文章</a><a data-nav="roadmap" href="../roadmap.html">Roadmap</a><a class="nav-cta" data-nav="resume" href="../resume.html">公开简历</a>
+</nav>
+</div>
+</header>
+<main>
+<section class="detail-hero">
+<div class="shell">
+<div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>TensorFlow MUSA Extension</span></div>
+<span class="eyebrow reveal">Framework Backend · Heterogeneous Computing</span>
+<h1 class="reveal"><span class="gradient-text">TensorFlow MUSA Extension：从框架语义到 Device Kernel 的真实工程链路。</span></h1>
+<p class="detail-lead reveal">参与国产 GPU 上的 TensorFlow 设备扩展插件开发，工作覆盖算子注册、muDNN 接入、图融合、HostMemory 语义、长跑稳定性、热点算子优化与 Kernel Timing。它让我第一次完整处理“上层框架为什么会让底层执行出错或变慢”。</p>
+<div class="detail-meta-grid reveal">
+<div class="detail-meta"><span>Role</span><strong>Operator &amp; Compiler Optimization Intern</strong></div>
+<div class="detail-meta"><span>Period</span><strong>2026.01 — 2026.04</strong></div>
+<div class="detail-meta"><span>Stack</span><strong>TensorFlow · C++ · MUSA · muDNN</strong></div>
+<div class="detail-meta"><span>Evidence</span><strong>Public engineering records + benchmarks</strong></div>
+</div>
+</div>
+</section>
+<section class="section compact section-line">
+<div class="shell detail-layout">
+<article class="detail-content">
+<section id="overview">
+<span class="section-kicker">01 / Overview</span>
+<h2>一个设备插件，需要同时理解框架、运行时、图优化和 Kernel。</h2>
+<div class="architecture">
+<div class="arch-node"><strong>TensorFlow Graph</strong><span>op semantics</span></div>
+<div class="arch-node"><strong>MUSA Plugin</strong><span>registration / placement</span></div>
+<div class="arch-node"><strong>Graph Optimizer</strong><span>fusion / rewrite</span></div>
+<div class="arch-node"><strong>muDNN / Kernel</strong><span>device compute</span></div>
+<div class="arch-node"><strong>Benchmark</strong><span>correctness / latency</span></div>
+</div>
+<p>TensorFlow MUSA Extension 通过设备插件把自定义算子、Kernel 与图优化能力接入 TensorFlow。实际问题常常不在单个 Kernel 本身，而是在 placement、Host/Device 输入语义、Fusion Pattern、测试覆盖和调试可见性之间。</p>
+</section>
+<section id="gelu">
+<span class="section-kicker">02 / Case Study A</span>
+<h2>GELU Fusion：从“支持算子”走到“整网真正融合”。</h2>
+<p>工作不只是增加一个 muDNN GELU 调用，而是补齐图融合链路和 benchmark，定位大图场景下部分 GELU 未命中 Fusion Pattern 的原因，并验证真实 shape。</p>
+<div class="metric-grid">
+<div class="metric-card"><strong>11 / 11</strong><span>整网 GELU 全部完成融合</span><small>GRAPH LEVEL</small></div>
+<div class="metric-card"><strong>+36.6%</strong><span>真实 shape testcase 性能提升</span><small>ANONYMIZED SHAPE</small></div>
+<div class="metric-card"><strong>muDNN</strong><span>后端实现接入</span><small>DEVICE PATH</small></div>
+</div>
+<ol class="number-list">
+<li>确认 TensorFlow 原始子图的算子组合、属性和 dtype 是否满足 Fusion Pattern。</li>
+<li>检查图优化 Pass 的匹配顺序与边界条件，避免只在微型单测中成功。</li>
+<li>使用真实 shape 建立 correctness + latency benchmark，验证融合后的实际收益。</li>
+</ol>
+</section>
+<section id="stability">
+<span class="section-kicker">03 / Case Study B</span>
+<h2>长跑 OOM / 随机崩溃：根因是 HostMemory 语义，而不是显存“不够”。</h2>
+<p>整网推理长跑出现 OOM 和随机退出。通过逐层缩小范围，发现 shape tensor 在 <span class="mono">StridedSlice&lt;int32&gt;</span> / <span class="mono">Pack&lt;int32&gt;</span> 等链路中错误进入 device path，导致生命周期与访问路径异常。</p>
+<pre class="code-block">Symptom:
   long-run inference → OOM / random crash
 
 Root cause:
@@ -85,71 +82,65 @@ Fix direction:
   rebuild HostMemory configuration
   align scalar / shape inputs with TensorFlow op semantics
   add use_locking=True validation for gradient ops</pre>
-            <div class="metric-grid">
-              <div class="metric-card"><strong>≈30%</strong><span>修复前 500 轮成功率</span><small>BEFORE</small></div>
-              <div class="metric-card"><strong>100%</strong><span>修复后 1000 轮验证</span><small>AFTER</small></div>
-              <div class="metric-card"><strong>40K / 400K / 800K</strong><span>进一步长跑验证轮次</span><small>STABILITY</small></div>
-            </div>
-            <div class="callout warning"><strong>公开贡献状态说明</strong><p>相关问题曾通过公开 PR #144 记录并合入，后续上游又进行了 revert。因此本页把它作为问题定位与实现贡献的公开证据，而不表述为当前主分支仍生效的改动。</p></div>
-            <a class="button small" href="https://github.com/MooreThreads/tensorflow_musa_extension/pull/144" target="_blank" rel="noreferrer">查看 PR #144 记录 ↗</a>
-          </section>
-
-          <section id="timing">
-            <span class="section-kicker">04 / Case Study C</span>
-            <h2>Kernel Timing：让定位不再依赖笨重的离线分析流程。</h2>
-            <p>设计并实现 Kernel Timing 宏与环境变量控制机制，使开发者可以通过轻量插桩快速看到 Kernel 粗粒度耗时占比，结合日志和测试脚本形成调试闭环。</p>
-            <div class="metric-grid">
-              <div class="metric-card"><strong>PR #57</strong><span>已合入公开主仓库</span><small>MERGED</small></div>
-              <div class="metric-card"><strong>≈50%</strong><span>脱敏定位效率改善</span><small>WORKFLOW</small></div>
-              <div class="metric-card"><strong>12 commits</strong><span>迭代与合入过程</span><small>PUBLIC HISTORY</small></div>
-            </div>
-            <a class="button small" href="https://github.com/MooreThreads/tensorflow_musa_extension/pull/57" target="_blank" rel="noreferrer">查看已合入 PR #57 ↗</a>
-          </section>
-
-          <section id="hotpath">
-            <span class="section-kicker">05 / Hot Path</span>
-            <h2>Logical_Or scalar broadcast 热点优化</h2>
-            <p>通过识别 scalar broadcast 的特定路径，减少通用实现带来的额外开销，同时补齐 Logical_And 相关测试，保证优化不破坏算子语义。</p>
-            <div class="metric-grid">
-              <div class="metric-card"><strong>21.2 μs</strong><span>优化前平均耗时</span><small>BASELINE</small></div>
-              <div class="metric-card"><strong>10.7 μs</strong><span>优化后平均耗时</span><small>OPTIMIZED</small></div>
-              <div class="metric-card"><strong>8187.48 → 8284.65</strong><span>脱敏整网吞吐变化</span><small>E2E</small></div>
-            </div>
-            <p>同时参与 AddV2 热点路径、ResourceApplyAdam / ApplyGradientDescent 等训练算子的语义与结果对齐。这些工作共同强化了一个认识：微型算子 latency 只有映射到调用频次和整网占比后，才有真实优化价值。</p>
-          </section>
-
-          <section id="contribution">
-            <span class="section-kicker">06 / Contribution</span>
-            <h2>我在这个项目中形成的能力</h2>
-            <ul>
-              <li>能够从 TensorFlow op 定义、Kernel 注册和 HostMemory 配置追踪完整执行路径。</li>
-              <li>能够区分算子支持、图融合和整网收益，建立真实 shape benchmark。</li>
-              <li>能够通过日志、长跑、二分与测试补齐定位稳定性问题，而不是把 OOM 简单归因于显存容量。</li>
-              <li>能够把调试需求产品化为可复用工具，并通过公开 PR 完成协作、迭代和合入。</li>
-              <li>理解国产 GPU 生态适配中的核心挑战：语义兼容、运行时差异、工具链成熟度与性能验证。</li>
-            </ul>
-          </section>
-
-          <section id="next">
-            <span class="section-kicker">07 / Next</span>
-            <h2>可以进一步公开沉淀的内容</h2>
-            <ol class="number-list">
-              <li>整理一条从 TensorFlow Graph 到 MUSA Device Kernel 的完整调用链图。</li>
-              <li>用 Roofline / memory traffic 重新分析 Logical_Or 与 AddV2 热点，区分 launch-bound 与 bandwidth-bound。</li>
-              <li>对比 CUDA 与 MUSA 上相同算子的调试、性能与语义适配方法，形成可迁移经验。</li>
-            </ol>
-          </section>
-        </article>
-
-        <aside class="detail-sidebar">
-          <div class="sidebar-card"><h3>Contents</h3><nav class="toc"><a href="#overview">项目概览</a><a href="#gelu">GELU Fusion</a><a href="#stability">长跑稳定性</a><a href="#timing">Kernel Timing</a><a href="#hotpath">热点算子</a><a href="#contribution">能力沉淀</a><a href="#next">下一步</a></nav></div>
-          <div class="sidebar-card"><h3>Public Links</h3><ul class="sidebar-list"><li><span>Timing</span><strong>PR #57</strong></li><li><span>Stability record</span><strong>PR #144</strong></li><li><span>Repository</span><strong>MooreThreads</strong></li></ul></div>
-          <a class="button primary" href="../projects.html">返回全部项目</a>
-        </aside>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="../resume.html">Resume</a></div></div></footer>
+<div class="metric-grid">
+<div class="metric-card"><strong>≈30%</strong><span>修复前 500 轮成功率</span><small>BEFORE</small></div>
+<div class="metric-card"><strong>100%</strong><span>修复后 1000 轮验证</span><small>AFTER</small></div>
+<div class="metric-card"><strong>40K / 400K / 800K</strong><span>进一步长跑验证轮次</span><small>STABILITY</small></div>
+</div>
+<div class="callout warning"><strong>公开工程记录说明</strong><p>相关问题曾通过公开 PR #144 记录并合入，后续上游又进行了 revert。因此本页把它作为问题定位与实现贡献的公开证据，而不表述为当前主分支仍生效的改动。</p></div>
+<a class="button small" href="https://github.com/MooreThreads/tensorflow_musa_extension/pull/144" rel="noreferrer" target="_blank">查看 PR #144 记录 ↗</a>
+</section>
+<section id="timing">
+<span class="section-kicker">04 / Case Study C</span>
+<h2>Kernel Timing：让定位不再依赖笨重的离线分析流程。</h2>
+<p>设计并实现 Kernel Timing 宏与环境变量控制机制，使开发者可以通过轻量插桩快速看到 Kernel 粗粒度耗时占比，结合日志和测试脚本形成调试闭环。</p>
+<div class="metric-grid">
+<div class="metric-card"><strong>PR #57</strong><span>已合入公开主仓库</span><small>MERGED</small></div>
+<div class="metric-card"><strong>≈50%</strong><span>脱敏定位效率改善</span><small>WORKFLOW</small></div>
+<div class="metric-card"><strong>12 commits</strong><span>迭代与合入过程</span><small>PUBLIC HISTORY</small></div>
+</div>
+<a class="button small" href="https://github.com/MooreThreads/tensorflow_musa_extension/pull/57" rel="noreferrer" target="_blank">查看已合入 PR #57 ↗</a>
+</section>
+<section id="hotpath">
+<span class="section-kicker">05 / Hot Path</span>
+<h2>Logical_Or scalar broadcast 热点优化</h2>
+<p>通过识别 scalar broadcast 的特定路径，减少通用实现带来的额外开销，同时补齐 Logical_And 相关测试，保证优化不破坏算子语义。</p>
+<div class="metric-grid">
+<div class="metric-card"><strong>21.2 μs</strong><span>优化前平均耗时</span><small>BASELINE</small></div>
+<div class="metric-card"><strong>10.7 μs</strong><span>优化后平均耗时</span><small>OPTIMIZED</small></div>
+<div class="metric-card"><strong>8187.48 → 8284.65</strong><span>脱敏整网吞吐变化</span><small>E2E</small></div>
+</div>
+<p>同时参与 AddV2 热点路径、ResourceApplyAdam / ApplyGradientDescent 等训练算子的语义与结果对齐。这些工作共同强化了一个认识：微型算子 latency 只有映射到调用频次和整网占比后，才有真实优化价值。</p>
+</section>
+<section id="contribution">
+<span class="section-kicker">06 / Contribution</span>
+<h2>我在这个项目中形成的能力</h2>
+<ul>
+<li>能够从 TensorFlow op 定义、Kernel 注册和 HostMemory 配置追踪完整执行路径。</li>
+<li>能够区分算子支持、图融合和整网收益，建立真实 shape benchmark。</li>
+<li>能够通过日志、长跑、二分与测试补齐定位稳定性问题，而不是把 OOM 简单归因于显存容量。</li>
+<li>能够把调试需求产品化为可复用工具，并通过公开 PR 完成协作、迭代和合入。</li>
+<li>理解国产 GPU 生态适配中的核心挑战：语义兼容、运行时差异、工具链成熟度与性能验证。</li>
+</ul>
+</section>
+<section id="next">
+<span class="section-kicker">07 / Next</span>
+<h2>可以进一步公开沉淀的内容</h2>
+<ol class="number-list">
+<li>整理一条从 TensorFlow Graph 到 MUSA Device Kernel 的完整调用链图。</li>
+<li>用 Roofline / memory traffic 重新分析 Logical_Or 与 AddV2 热点，区分 launch-bound 与 bandwidth-bound。</li>
+<li>对比 CUDA 与 MUSA 上相同算子的调试、性能与语义适配方法，形成可迁移经验。</li>
+</ol>
+</section>
+</article>
+<aside class="detail-sidebar">
+<div class="sidebar-card"><h3>Contents</h3><nav class="toc"><a href="#overview">项目概览</a><a href="#gelu">GELU Fusion</a><a href="#stability">长跑稳定性</a><a href="#timing">Kernel Timing</a><a href="#hotpath">热点算子</a><a href="#contribution">能力沉淀</a><a href="#next">下一步</a></nav></div>
+<div class="sidebar-card"><h3>Public Links</h3><ul class="sidebar-list"><li><span>Timing</span><strong>PR #57</strong></li><li><span>Stability record</span><strong>PR #144</strong></li><li><span>Repository</span><strong>MooreThreads</strong></li></ul></div>
+<a class="button primary" href="../projects.html">返回全部项目</a>
+</aside>
+</div>
+</section>
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year=""></span> Haoran Feng.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub</a><a href="../resume.html">Resume</a></div></div></footer>
 </body>
 </html>

@@ -1,23 +1,24 @@
-<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="将三套可见光无人机数据统一转换为 YOLO / COCO，构建环境自检、极小子集 smoke、多 GPU 调度、结果汇总与恢复机制；重点不是只报一个 mAP，而是让大规模实验可执行、可追溯、可恢复。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/drone-detection-pipeline.html"><title>ICS6201 无人机检测：171K 样本数据工程与多 GPU 实验流水线 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
-<body data-page="projects" class="evidence-page">
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><meta content="将三套可见光无人机数据统一转换为 YOLO / COCO，构建环境自检、极小子集 smoke、多 GPU 调度、结果汇总与恢复机制；重点不是只报一个 mAP，而是让大规模实验可执行、可追溯、可恢复。" name="description"/><meta content="#07090d" name="theme-color"/><link href="https://xfdg.github.io/projects/drone-detection-pipeline.html" rel="canonical"/><title>无人机检测：171K 样本数据工程与多 GPU 实验流水线 — Haoran Feng</title><link href="../assets/favicon.svg" rel="icon" type="image/svg+xml"/><link href="../styles.css" rel="stylesheet"/><script defer="" src="../script.js"></script></head>
+<body class="evidence-page" data-page="projects">
 <header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="../index.html" aria-label="返回首页"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
-    <button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button>
-    <nav class="site-nav" aria-label="主导航">
-      <a href="../index.html" data-nav="home">首页</a><a href="../experience.html" data-nav="experience">经历</a><a href="../projects.html" data-nav="projects">项目</a><a href="../writing.html" data-nav="writing">文章</a><a href="../roadmap.html" data-nav="roadmap">Roadmap</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">公开简历</a>
-    </nav>
-  </div>
+<div class="shell header-inner">
+<a aria-label="返回首页" class="brand" href="../index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
+<button aria-expanded="false" aria-label="打开导航" class="menu-toggle" type="button"><span></span></button>
+<nav aria-label="主导航" class="site-nav">
+<a data-nav="home" href="../index.html">首页</a><a data-nav="experience" href="../experience.html">经历</a><a data-nav="projects" href="../projects.html">项目</a><a data-nav="writing" href="../writing.html">文章</a><a data-nav="roadmap" href="../roadmap.html">Roadmap</a><a data-nav="contact" href="../contact.html">联系</a><a class="nav-cta" data-nav="resume" href="../resume.html">公开简历</a>
+</nav>
+</div>
 </header>
 <main>
-  <section class="detail-hero"><div class="shell"><div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>ICS6201 无人机检测：171K 样本数据工程与多 GPU 实验流水线</span></div><span class="eyebrow reveal">ML Systems · Data Pipeline · Multi-GPU Experiment</span><h1 class="reveal"><span class="gradient-text">ICS6201 无人机检测：171K 样本数据工程与多 GPU 实验流水线</span></h1><p class="detail-lead reveal">将三套可见光无人机数据统一转换为 YOLO / COCO，构建环境自检、极小子集 smoke、多 GPU 调度、结果汇总与恢复机制；重点不是只报一个 mAP，而是让大规模实验可执行、可追溯、可恢复。</p><div class="detail-meta-grid reveal"><div class="detail-meta"><span>Role</span><strong>Pipeline, Data Engineering &amp; Experiment Operations</strong></div><div class="detail-meta"><span>Environment</span><strong>8× H200 · Shared Storage · 3 Datasets</strong></div><div class="detail-meta"><span>Stack</span><strong>Ultralytics · Detectron2 · Python · ffmpeg</strong></div><div class="detail-meta"><span>Status</span><strong>课程项目 · 核心 6 个训练任务完成</strong></div></div></div></section>
-  <section class="section compact section-line"><div class="shell detail-layout"><article class="detail-content">
-    <section><span class="section-kicker">Evidence Snapshot / 证据快照</span><h2>用可复核的数字描述贡献，也明确数字不能证明什么。</h2><div class="metric-grid"><div class="metric-card"><strong>171,568</strong><span>统一样本总量</span><small>3 datasets</small></div><div class="metric-card"><strong>18 days → 10–20 min</strong><span>ARD-MAV 抽帧</span><small>批量 ffmpeg</small></div><div class="metric-card"><strong>14 / 14</strong><span>端到端 smoke</span><small>约 5m07s</small></div><div class="metric-card"><strong>0.67682 / 64.566</strong><span>RT-DETR / Faster R-CNN 均值</span><small>不同原生指标</small></div></div></section>
-    <section><span class="section-kicker">System / 系统链路</span><h2>从问题到验证的工程闭环</h2><div class="architecture"><div class="arch-node"><strong>Raw Datasets</strong><span>VOC + video/XML</span></div><div class="arch-node"><strong>Preparation</strong><span>YOLO + COCO + fast frames</span></div><div class="arch-node"><strong>Validation</strong><span>14-gate smoke</span></div><div class="arch-node"><strong>Scheduler</strong><span>GPU worker launcher</span></div><div class="arch-node"><strong>Evidence</strong><span>3 seeds + light metrics</span></div></div></section>
-    <figure class="project-figure"><img src="../assets/projects/drone/primary-completion.png" alt="RT-DETR-L 与 Faster R-CNN 三随机种子核心任务完成情况" loading="lazy"><figcaption>RT-DETR-L 与 Faster R-CNN 三随机种子核心任务完成情况 · 公开脱敏图</figcaption></figure>
-    <section class="source-banner"><div><span class="section-kicker">Public Sources / 公开证据</span><h2>以下正文来自 ICS6201 <code>me</code> 分支的脱敏文档。</h2><p>内部仓库、节点、镜像、模型路径、运行标识、凭据与原始日志均不在页面中。公开数字保留原文定义和适用边界。</p></div><div class="button-row"><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/ics6201/PROJECT_SUMMARY.md" target="_blank" rel="noopener noreferrer">项目完整总结 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/ics6201/TRAINING_RECOVERY_PRIORITY_PLAN_2026-06-05.md" target="_blank" rel="noopener noreferrer">恢复优先级计划 ↗</a></div></section>
-    <section class="evidence-section"><h2>数据、脚本、验证和核心结果</h2>
+<section class="detail-hero"><div class="shell"><div class="detail-breadcrumbs reveal"><a href="../projects.html">Projects</a><span>/</span><span>无人机检测：171K 样本数据工程与多 GPU 实验流水线</span></div><span class="eyebrow reveal">ML Systems · Data Pipeline · Multi-GPU Experiment</span><h1 class="reveal"><span class="gradient-text">无人机检测：171K 样本数据工程与多 GPU 实验流水线</span></h1><p class="detail-lead reveal">将三套可见光无人机数据统一转换为 YOLO / COCO，构建环境自检、极小子集 smoke、多 GPU 调度、结果汇总与恢复机制；重点不是只报一个 mAP，而是让大规模实验可执行、可追溯、可恢复。</p><div class="detail-meta-grid reveal"><div class="detail-meta"><span>Role</span><strong>Pipeline, Data Engineering &amp; Experiment Operations</strong></div><div class="detail-meta"><span>Environment</span><strong>8× H200 · Shared Storage · 3 Datasets</strong></div><div class="detail-meta"><span>Stack</span><strong>Ultralytics · Detectron2 · Python · ffmpeg</strong></div><div class="detail-meta"><span>Status</span><strong>实验工程 · 核心训练与评测流水线完成</strong></div></div></div></section>
+<section class="section compact section-line"><div class="shell detail-layout"><article class="detail-content">
+<section><span class="section-kicker">Evidence Snapshot / 证据快照</span><h2>用可复核的数字描述贡献，也明确数字不能证明什么。</h2><div class="metric-grid"><div class="metric-card"><strong>171,568</strong><span>统一样本总量</span><small>3 datasets</small></div><div class="metric-card"><strong>18 days → 10–20 min</strong><span>ARD-MAV 抽帧</span><small>批量 ffmpeg</small></div><div class="metric-card"><strong>14 / 14</strong><span>端到端 smoke</span><small>约 5m07s</small></div><div class="metric-card"><strong>0.67682 / 64.566</strong><span>RT-DETR / Faster R-CNN 均值</span><small>不同原生指标</small></div></div></section>
+<section><span class="section-kicker">System / 系统链路</span><h2>从问题到验证的工程闭环</h2><div class="architecture"><div class="arch-node"><strong>Raw Datasets</strong><span>VOC + video/XML</span></div><div class="arch-node"><strong>Preparation</strong><span>YOLO + COCO + fast frames</span></div><div class="arch-node"><strong>Validation</strong><span>14-gate smoke</span></div><div class="arch-node"><strong>Scheduler</strong><span>GPU worker launcher</span></div><div class="arch-node"><strong>Evidence</strong><span>3 seeds + light metrics</span></div></div></section>
+<figure class="project-figure"><img alt="RT-DETR-L 与 Faster R-CNN 三随机种子核心任务完成情况" loading="lazy" src="../assets/projects/drone/primary-completion.png"/><figcaption>RT-DETR-L 与 Faster R-CNN 三随机种子核心任务完成情况 · 公开脱敏图</figcaption></figure>
+<section class="source-banner"><div><span class="section-kicker">Public Sources / 公开证据</span><h2>以下正文来自公开脱敏工程文档。</h2><p>内部仓库、节点、镜像、模型路径、运行标识、凭据与原始日志均不在页面中。公开数字保留原文定义和适用边界。</p></div><div class="button-row"><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/ics6201/PROJECT_SUMMARY.md" rel="noopener noreferrer" target="_blank">项目完整总结 ↗</a><a class="button small" href="https://github.com/XFDG/ICS6201/blob/me/doc/work_records/ics6201/TRAINING_RECOVERY_PRIORITY_PLAN_2026-06-05.md" rel="noopener noreferrer" target="_blank">恢复优先级计划 ↗</a></div></section>
+<section class="evidence-section"><h2>数据、脚本、验证和核心结果</h2>
 <h4>项目概述</h4>
 <p><strong>目标</strong>：用 6 种目标检测模型在 3 套无人机数据集上进行对比实验，找出最适合无人机黑飞检测的方案。</p>
 <p><strong>基本信息</strong>：</p>
@@ -59,7 +60,7 @@
 </tr>
 <tr>
 <td>项目路径</td>
-<td><code>[redacted-path]/ICS6201/</code></td>
+<td><code>[redacted-path]/project-root/</code></td>
 </tr>
 <tr>
 <td>当前环境</td>
@@ -140,7 +141,7 @@ PIP_CONSTRAINT="" pip install ultralytics pyyaml
 PIP_CONSTRAINT="" pip install opencv-python-headless  # GPU 无 libGL
 PIP_CONSTRAINT="" pip install --no-build-isolation 'git+https://github.com/facebookresearch/detectron2.git'
 </code></pre>
-<p>激活：<code>source [redacted-path]/ICS6201/activate_fly.sh</code></p>
+<p>激活：<code>source [redacted-path]/project-root/activate_fly.sh</code></p>
 <h4>踩坑记录</h4>
 <table>
 <thead>
@@ -431,7 +432,7 @@ STEP 6: Keep Alive（启动 GPU 防回收守护进程）
 <h4>仓库瘦身后的重跑策略</h4>
 <p>2026-06-09 的 manifest/checkpoint 恢复方案属于历史执行记录。2026-07-15 清理后，仓库不再包含原始数据和 checkpoint，因此不能直接从旧 <code>last.pt</code> 恢复。如需补跑 secondary，应重新准备数据与初始权重，再使用新版 per-GPU worker launcher 从头训练。</p>
 <p>数据准备完成后可先执行 dry-run，检查任务与 GPU 分配：</p>
-<pre><code class="language-bash">cd [redacted-path]/ICS6201
+<pre><code class="language-bash">cd [redacted-path]/project-root
 source [redacted-path]/miniconda3/etc/profile.d/conda.sh
 conda activate fly
 
@@ -641,7 +642,7 @@ CUDA_VISIBLE_DEVICES=0 python your_script.py
 <li>避免 <code>yolo11_seed1</code> 结束后把 <code>yolo11_seed2</code> 错误派发到 GPU1。</li>
 </ul>
 <p>执行方式：</p>
-<pre><code class="language-bash">cd [redacted-path]/ICS6201
+<pre><code class="language-bash">cd [redacted-path]/project-root
 
 LAUNCHER_PID=$(pgrep -f 'scripts/parallel_launcher.py --mode formal')
 echo "launcher=${LAUNCHER_PID}"
@@ -1001,7 +1002,7 @@ pidstat -d -p ALL 5 3
 </table>
 <h4>5. 恢复执行顺序</h4>
 <h4>Phase A: 冻结旧 launcher</h4>
-<pre><code class="language-bash">cd [redacted-path]/ICS6201
+<pre><code class="language-bash">cd [redacted-path]/project-root
 LAUNCHER_PID=$(pgrep -f 'scripts/parallel_launcher.py --mode formal')
 MASTER_PID=$(pgrep -f 'bash master.sh --gpus 1,2,3,4,5,6,7')
 
@@ -1058,7 +1059,7 @@ ps -p "${LAUNCHER_PID}" "${MASTER_PID}"
 <p>如果仍未退出，再人工确认没有子训练进程后处理。</p>
 <h4>Phase E: 用新脚本恢复 primary</h4>
 <p>建议启动命令：</p>
-<pre><code class="language-bash">cd [redacted-path]/ICS6201
+<pre><code class="language-bash">cd [redacted-path]/project-root
 
 TRAIN_ENV=fly \
 TRAIN_TARGET=primary \
@@ -1177,7 +1178,7 @@ bash master.sh \
 <li>决策矩阵: <code>assets/ics6201_recovery_priority_matrix.csv</code></li>
 <li>计划图: <code>assets/ics6201_recovery_priority_plan.png</code></li>
 </ul></section>
-    <section class="callout warning"><strong>结论边界</strong><p>六模型 × 三随机种子是完整实验设计，但公开结果中只有 RT-DETR-L 与 Faster R-CNN 的三个随机种子核心任务全部完成；其余模型不能写成 18 次训练全部完成。两类 AP 采用各框架原生口径，不宜直接横向比较。</p></section>
-  </article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Evidence Standard</h3><ul class="sidebar-list"><li><span>Problem</span><strong>可复现定义</strong></li><li><span>Method</span><strong>控制变量 / Oracle</strong></li><li><span>Result</span><strong>同口径对照</strong></li><li><span>Boundary</span><strong>不做过度外推</strong></li></ul></div><a class="button primary" href="../projects.html">返回全部项目</a><a class="button" href="../writing.html">技术文章与发布计划</a></aside></div></section>
+<section class="callout warning"><strong>结论边界</strong><p>六模型 × 三随机种子是完整实验设计，但公开结果中只有 RT-DETR-L 与 Faster R-CNN 的三个随机种子核心任务全部完成；其余模型不能写成 18 次训练全部完成。两类 AP 采用各框架原生口径，不宜直接横向比较。</p></section>
+</article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Evidence Standard</h3><ul class="sidebar-list"><li><span>Problem</span><strong>可复现定义</strong></li><li><span>Method</span><strong>控制变量 / Oracle</strong></li><li><span>Result</span><strong>同口径对照</strong></li><li><span>Boundary</span><strong>不做过度外推</strong></li></ul></div><a class="button primary" href="../projects.html">返回全部项目</a><a class="button" href="../writing.html">技术文章与发布计划</a></aside></div></section>
 </main>
-<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng. Evidence-led AI Infra portfolio.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">知乎</a><a href="../resume.html">Resume</a></div></div></footer></body></html>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year=""></span> Haoran Feng. Evidence-led AI Infra portfolio.</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub</a><a href="https://blog.csdn.net/XFDG01" rel="me noopener noreferrer" target="_blank">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" rel="me noopener noreferrer" target="_blank">知乎</a><a href="../resume.html">Resume</a></div></div></footer></body></html>
