@@ -1,0 +1,338 @@
+name: Apply Mirage, education, and profile corrections
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-profile-corrections.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  update-site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install HTML tooling
+        run: python -m pip install --disable-pip-version-check beautifulsoup4
+
+      - name: Update public profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          from bs4 import BeautifulSoup
+
+          ROOT = Path('.')
+          MIRAGE_PR = 'https://github.com/mirage-project/mirage/pull/755'
+          KAGGLE = 'https://www.kaggle.com/competitions/dl2023autumexp2'
+
+          def read(path: str) -> BeautifulSoup:
+              return BeautifulSoup((ROOT / path).read_text(encoding='utf-8'), 'html.parser')
+
+          def write(path: str, soup: BeautifulSoup) -> None:
+              (ROOT / path).write_text(str(soup), encoding='utf-8')
+
+          def fragment(markup: str, tag: str):
+              return BeautifulSoup(markup, 'html.parser').find(tag)
+
+          # Universal factual/name corrections.
+          for path in ROOT.rglob('*.html'):
+              text = path.read_text(encoding='utf-8')
+              text = text.replace('2026.02 — 2026.05', '2026.01 — 2026.04')
+              text = text.replace('2026.02 – 2026.05', '2026.01 — 2026.04')
+              text = text.replace('ICS6201 无人机检测实验流水线', '无人机检测实验流水线')
+              text = text.replace('ICS6201 无人机检测流水线', '无人机检测流水线')
+              text = text.replace('ICS6201 无人机检测', '无人机检测')
+              path.write_text(text, encoding='utf-8')
+
+          # Homepage.
+          path = 'index.html'
+          soup = read(path)
+          statement = soup.select_one('.hero-statement')
+          if statement:
+              statement.string = '香港中文大学（深圳）集成电路与系统硕士在读，本科毕业于山东大学电子科学与技术专业，并辅修计算机科学与技术。关注大模型训练推理、RL Infra、GPU Kernel、分布式存储与性能工程。'
+
+          for row in soup.select('.hero-facts > div'):
+              dt = row.find('dt')
+              dd = row.find('dd')
+              if dt and dd and dt.get_text(' ', strip=True) == 'Open source':
+                  dd.string = 'Mooncake · Mirage'
+          facts = soup.select_one('.hero-facts')
+          if facts and not any(x.get_text(' ', strip=True) == 'Education' for x in facts.find_all('dt')):
+              facts.append(fragment('<div><dt>Education</dt><dd>CUHK-Shenzhen · Shandong University</dd></div>', 'div'))
+
+          metrics = soup.select('.metric-strip > div')[:4]
+          metric_values = [
+              ('3', 'Merged upstream PRs'),
+              ('8×H200', 'MoE-RL 主实验环境'),
+              ('128 GPUs', '最大规模验证'),
+              ('2027', 'Expected graduation'),
+          ]
+          for box, (value, label) in zip(metrics, metric_values):
+              strong = box.find('strong')
+              span = box.find('span')
+              if strong: strong.string = value
+              if span: span.string = label
+
+          for row in soup.select('.work-row'):
+              title = row.select_one('.work-main strong')
+              if not title:
+                  continue
+              name = title.get_text(' ', strip=True)
+              if name == 'TensorFlow MUSA Extension':
+                  badge = row.select_one('.work-badge')
+                  if badge: badge.string = 'FRAMEWORK'
+              if 'H200 MoE Grouped GEMM' in name:
+                  evidence = row.select_one('.work-evidence')
+                  if evidence: evidence.string = '工作量口径纠正 4×–6× · target +5.3%'
+
+          # Education section on the homepage.
+          if not soup.find(id='education'):
+              education = fragment(f'''
+              <section class="dense-section section-line" id="education">
+                <div class="shell">
+                  <div class="dense-heading"><h2>Education</h2><a href="experience.html">Details →</a></div>
+                  <div class="timeline-compact education-compact">
+                    <div><time>2025 — 2027</time><strong>香港中文大学（深圳）</strong><span>集成电路与系统 · 硕士</span></div>
+                    <div><time>2021 — 2025</time><strong>山东大学</strong><span>电子科学与技术 · 本科；计算机科学与技术 · 辅修</span></div>
+                    <div><time>Undergraduate</time><strong>交叉基础与早期实践</strong><span>学业奖学金（前 20%）、竞赛创新特长奖学金；ResNet 半监督图像分类 Top-1 51.8% → 85.1%，Kaggle 竞赛第 7 名。</span></div>
+                  </div>
+                </div>
+              </section>
+              ''', 'section')
+              experience_heading = next((h for h in soup.select('.dense-heading h2') if h.get_text(' ', strip=True) == 'Experience'), None)
+              if experience_heading:
+                  experience_heading.find_parent('section').insert_before(education)
+
+          # Independent open-source section: Mooncake + Mirage. MUSA remains an internship project.
+          open_heading = next((h for h in soup.select('.dense-heading h2') if h.get_text(' ', strip=True) == 'Open source'), None)
+          if open_heading:
+              section = open_heading.find_parent('section')
+              label = open_heading.find_next_sibling('span')
+              if label: label.string = 'Independent upstream contributions'
+              os_list = section.select_one('.os-list')
+              if os_list:
+                  os_list.clear()
+                  os_list.append(fragment('<a href="projects/mooncake-contributions.html"><strong>Mooncake</strong><span>2 个 RDMA 生命周期与故障恢复修复已合入上游</span><b>↗</b></a>', 'a'))
+                  os_list.append(fragment('<a href="projects/mirage-contribution.html"><strong>Mirage</strong><span>修复 Qwen3 lm_head padding 参与 Argmax 导致越界 Token 的正确性问题，PR #755 已合并</span><b>↗</b></a>', 'a'))
+          write(path, soup)
+
+          # Project index.
+          path = 'projects.html'
+          soup = read(path)
+          work_list = soup.select_one('.work-list.project-index-list') or soup.select_one('.work-list')
+          if work_list and not soup.find('a', href='projects/mirage-contribution.html'):
+              mooncake = soup.find('a', href='projects/mooncake-contributions.html')
+              mirage = fragment('''
+              <a class="work-row filter-item" data-category="opensource systems inference" href="projects/mirage-contribution.html">
+                <span class="work-index">02</span>
+                <span class="work-main"><strong>Mirage：修复 Qwen3 Argmax Padding 越界 Token</strong><small>定位 lm_head 补零行在真实 logits 全为负数时抢占 Argmax 的问题，以负大值填充保证输出 Token 始终落在真实词表范围内。</small></span>
+                <span class="work-evidence">PR #755 merged · 9 demos</span>
+                <span class="work-badge">OPEN SOURCE</span>
+                <span class="work-arrow">↗</span>
+              </a>
+              ''', 'a')
+              if mooncake:
+                  mooncake.insert_after(mirage)
+              else:
+                  work_list.insert(0, mirage)
+
+          for row in soup.select('.work-row'):
+              title = row.select_one('.work-main strong')
+              if not title:
+                  continue
+              name = title.get_text(' ', strip=True)
+              if name == 'TensorFlow MUSA Extension':
+                  categories = (row.get('data-category') or '').split()
+                  row['data-category'] = ' '.join(x for x in categories if x != 'opensource')
+                  badge = row.select_one('.work-badge')
+                  if badge: badge.string = 'FRAMEWORK'
+              if 'H200 MoE Grouped GEMM' in name:
+                  evidence = row.select_one('.work-evidence')
+                  if evidence: evidence.string = '工作量口径纠正 4×–6× · target +5.3%'
+              if '无人机检测' in name:
+                  title.string = '无人机检测实验流水线'
+
+          if work_list and not soup.find('a', href=KAGGLE):
+              earlier = fragment(f'''
+              <a class="work-row filter-item" data-category="ml" href="{KAGGLE}" target="_blank" rel="noreferrer">
+                <span class="work-index">00</span>
+                <span class="work-main"><strong>ResNet 半监督图像分类</strong><small>本科阶段构建 ResNet-18 分类流水线，以伪标签和混合数据增强缓解少标签与类别不平衡问题。</small></span>
+                <span class="work-evidence">Top-1 51.8%→85.1% · 7th</span>
+                <span class="work-badge">EARLIER WORK</span>
+                <span class="work-arrow">↗</span>
+              </a>
+              ''', 'a')
+              work_list.append(earlier)
+
+          for idx, row in enumerate(soup.select('.project-index-list .work-row, .work-list.project-index-list .work-row'), start=1):
+              number = row.select_one('.work-index')
+              if number: number.string = f'{idx:02d}'
+          write(path, soup)
+
+          # Experience page: enrich undergraduate background and correct OSS classification.
+          path = 'experience.html'
+          soup = read(path)
+          shandong_card = next((card for card in soup.select('.timeline-card') if card.find('h3') and card.find('h3').get_text(' ', strip=True) == '山东大学'), None)
+          if shandong_card:
+              p = shandong_card.find('p')
+              if p:
+                  p.clear()
+                  p.append('电子科学与技术本科，计算机科学与技术辅修；课程基础覆盖模数电、微机、FPGA、嵌入式、数据结构与计算机网络。获学业奖学金（前 20%）及竞赛创新特长奖学金。早期以 ResNet-18、伪标签和混合增强完成半监督图像分类，将 Top-1 从 51.8% 提升至 85.1%，获得 Kaggle 竞赛第 7 名。')
+                  p.append(' ')
+                  link = soup.new_tag('a', href=KAGGLE, target='_blank', rel='noreferrer')
+                  link.string = 'Competition ↗'
+                  p.append(link)
+
+          os_section = soup.find(id='open-source-contributions')
+          if os_section:
+              kicker = os_section.select_one('.section-kicker')
+              if kicker: kicker.string = 'Independent Open Source / 独立开源贡献'
+              h2 = os_section.find('h2')
+              if h2: h2.string = '向公共上游提交可复核的系统修复。'
+              intro = os_section.select_one('.section-head > p')
+              if intro: intro.string = 'Mooncake 与 Mirage 为独立上游贡献；TensorFlow MUSA PR 属于摩尔线程实习工作，保留在实习经历中。'
+              os_list = os_section.select_one('.os-list')
+              if os_list:
+                  os_list.clear()
+                  os_list.append(fragment('<a href="projects/mooncake-contributions.html"><strong>Mooncake</strong><span>2 个已合并 Bugfix PR：RDMA Memory Region Fork State 恢复，以及端口恢复后的失效 Endpoint / QP 重建。</span><b>View ↗</b></a>', 'a'))
+                  os_list.append(fragment('<a href="projects/mirage-contribution.html"><strong>Mirage</strong><span>PR #755 已合并：修复 Qwen3 lm_head 补零行在全负 logits 下赢得 Argmax、生成越界 Token ID 的问题。</span><b>View ↗</b></a>', 'a'))
+          write(path, soup)
+
+          # Resume: independent OSS only, and add a concise undergraduate project.
+          path = 'resume.html'
+          soup = read(path)
+          os_section = soup.find(id='resume-open-source')
+          if os_section:
+              h2 = os_section.find('h2')
+              if h2: h2.string = 'Open Source Contributions'
+              for entry in list(os_section.select('.resume-entry')):
+                  entry.decompose()
+              os_section.append(fragment('''
+              <div class="resume-entry">
+                <div class="resume-entry-head"><div><h3>Mooncake Contributor</h3><span class="sub">Distributed KV Cache · RDMA · Storage</span></div><span class="date">2026.08</span></div>
+                <ul><li>向 Mooncake 提交 Transfer Engine / Store 稳定性修复；其中 2 个 PR 已合并，覆盖 RDMA Memory Region Fork State 恢复及端口恢复后的失效 Endpoint / QP 重建。</li></ul>
+              </div>
+              ''', 'div'))
+              os_section.append(fragment(f'''
+              <div class="resume-entry">
+                <div class="resume-entry-head"><div><h3>Mirage Contributor</h3><span class="sub">Qwen3 Inference · Argmax Correctness</span></div><span class="date">2026.08</span></div>
+                <ul><li>提交并合入 <a href="{MIRAGE_PR}" target="_blank" rel="noreferrer">PR #755</a>：定位 lm_head 零填充行在真实 logits 全为负数时赢得 Argmax、产生越界 Token ID 的根因，并将 9 个 Qwen3 Demo 的填充值改为 -1e4。</li></ul>
+              </div>
+              ''', 'div'))
+
+          selected = next((section for section in soup.select('section.resume-section') if section.find('h2') and section.find('h2').get_text(' ', strip=True) == 'Selected Projects'), None)
+          if selected and 'ResNet 半监督图像分类' not in selected.get_text(' ', strip=True):
+              selected.append(fragment(f'''
+              <div class="resume-entry">
+                <div class="resume-entry-head"><div><h3>ResNet 半监督图像分类</h3><span class="sub">ResNet-18 · Pseudo-labeling · Data Augmentation</span></div><span class="date">2024.03 — 2024.06</span></div>
+                <ul><li>构建端到端图像分类流水线，以伪标签和混合增强缓解少标签与类别不平衡，将 Top-1 准确率由 51.8% 提升至 85.1%，获得 <a href="{KAGGLE}" target="_blank" rel="noreferrer">Kaggle 竞赛第 7 名</a>。</li></ul>
+              </div>
+              ''', 'div'))
+
+          shandong = next((entry for entry in soup.select('.resume-entry') if entry.find('h3') and entry.find('h3').get_text(' ', strip=True) == '山东大学'), None)
+          if shandong:
+              ul = shandong.find('ul')
+              if ul:
+                  ul.clear()
+                  ul.append(fragment('<li>电子科学与技术本科，计算机科学与技术辅修；获学业奖学金（前 20%）及竞赛创新特长奖学金。</li>', 'li'))
+          write(path, soup)
+
+          # Dedicated concise Mirage contribution page.
+          mirage_page = f'''<!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="description" content="Mirage PR #755：修复 Qwen3 lm_head padding 行参与 Argmax 导致越界 token id 的正确性问题。">
+            <meta name="theme-color" content="#f4f2ed">
+            <link rel="canonical" href="https://xfdg.github.io/projects/mirage-contribution.html">
+            <title>Mirage 开源贡献 — Haoran Feng</title>
+            <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+            <link rel="stylesheet" href="../styles.css">
+            <script src="../script.js" defer></script>
+          </head>
+          <body class="compact-site editorial-site" data-page="projects">
+            <header class="site-header"><div class="shell header-inner"><a class="brand" href="../index.html"><span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span></a><button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button><nav class="site-nav" aria-label="主导航"><a href="../index.html" data-nav="home">首页</a><a href="../projects.html" data-nav="projects">项目</a><a href="../experience.html" data-nav="experience">经历</a><a href="../writing.html" data-nav="writing">文章</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">简历</a></nav></div></header>
+            <main>
+              <section class="compact-page-head"><div class="shell"><div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>Mirage</span></div><span class="eyebrow">Open Source · Qwen3 Inference · Correctness</span><div class="page-title-line"><h1>Mirage：修复 Argmax Padding 导致的越界 Token</h1><p>PR #755 已于 2026-08-26 合并到上游。</p></div><div class="metric-strip detail-strip"><div><strong>#755</strong><span>Merged upstream PR</span></div><div><strong>9</strong><span>Qwen3 demo scripts</span></div><div><strong>2</strong><span>Related issues closed</span></div><div><strong>Correctness</strong><span>Valid token id guarantee</span></div></div></div></section>
+              <section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Root cause</h2><a href="{MIRAGE_PR}" target="_blank" rel="noreferrer">GitHub PR ↗</a></div><p>Qwen3 Demo 为满足任务图的整除要求，将 <code>lm_head</code> 从真实词表大小 151,936 补到 153,600 行。原实现使用 0 填充；当所有真实 Logit 都为负数时，补零行会赢得 Argmax，返回大于等于 <code>vocab_size</code> 的非法 Token ID。</p></div></section>
+              <section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Fix</h2><span>Finite negative padding</span></div><div class="timeline-compact"><div><time>Before</time><strong>Zero padding</strong><span>Padding Logit 恒为 0，可能压过所有真实负 Logit。</span></div><div><time>After</time><strong>-1e4 padding</strong><span>补齐行不会参与有效 Argmax，同时保持 BF16 可表示的有限数值。</span></div><div><time>Scope</time><strong>9 Qwen3 demos</strong><span>统一修复 Demo、Hopper、30B-A3B、Eagle3、Sampling、Debug、Kernel Reuse 与 Chat 等入口。</span></div></div></div></section>
+              <section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Verification</h2><span>Merged · Approved</span></div><ul class="compact-list"><li>在 Qwen3-8B BF16 路径复现全负真实 Logit 时产生越界 Padding Index。</li><li>修复后 Argmax 始终返回 <code>[0, vocab_size)</code> 内的合法 Token ID。</li><li>PR 获上游 Review 通过并合并，同时关闭相关 Issue #751 与 #752。</li></ul><p class="boundary-note">这是一个行数很小但语义明确的正确性修复：贡献重点在于从 Padding、Logit 分布与 Argmax 扫描范围之间建立根因链路，而不是代码改动规模。</p></div></section>
+            </main>
+            <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="{MIRAGE_PR}" target="_blank" rel="noreferrer">PR #755</a><a href="../resume.html">Resume</a></div></div></footer>
+          </body>
+          </html>'''
+          (ROOT / 'projects/mirage-contribution.html').write_text(mirage_page, encoding='utf-8')
+
+          # Sitemap.
+          sitemap = ROOT / 'sitemap.xml'
+          text = sitemap.read_text(encoding='utf-8')
+          if 'https://xfdg.github.io/projects/mirage-contribution.html' not in text:
+              text = text.replace('</urlset>', '  <url><loc>https://xfdg.github.io/projects/mirage-contribution.html</loc></url>\n</urlset>')
+              sitemap.write_text(text, encoding='utf-8')
+
+          # Validation.
+          index = (ROOT / 'index.html').read_text(encoding='utf-8')
+          projects = (ROOT / 'projects.html').read_text(encoding='utf-8')
+          experience = (ROOT / 'experience.html').read_text(encoding='utf-8')
+          resume = (ROOT / 'resume.html').read_text(encoding='utf-8')
+          mirage = (ROOT / 'projects/mirage-contribution.html').read_text(encoding='utf-8')
+          drone = (ROOT / 'projects/drone-detection-pipeline.html').read_text(encoding='utf-8')
+
+          assert 'Merged upstream PRs' in index and '128 GPUs' in index
+          assert 'GEMM forward ranges' not in index
+          assert 'Shandong University' in index and '山东大学' in index
+          assert 'Mooncake · Mirage' in index
+          assert 'projects/mirage-contribution.html' in index and 'projects/mirage-contribution.html' in projects
+          assert 'TensorFlow MUSA Extension Contributor' not in resume
+          assert 'Mirage Contributor' in resume and 'Mooncake Contributor' in resume
+          assert 'TensorFlow MUSA PR 属于摩尔线程实习工作' in experience
+          assert 'ICS6201' not in projects and 'ICS6201' not in drone
+          assert 'PR #755' in mirage and '已于 2026-08-26 合并' in mirage
+          assert 'ResNet 半监督图像分类' in projects and 'ResNet 半监督图像分类' in resume
+
+          missing = []
+          for html_path in ROOT.rglob('*.html'):
+              page = BeautifulSoup(html_path.read_text(encoding='utf-8'), 'html.parser')
+              ids = [node.get('id') for node in page.find_all(id=True)]
+              assert len(ids) == len(set(ids)), f'duplicate id: {html_path}'
+              for node in page.find_all(['a', 'img', 'script', 'link']):
+                  target = node.get('href') or node.get('src')
+                  if not target or target.startswith(('#', 'mailto:', 'tel:', 'javascript:', 'data:')):
+                      continue
+                  parsed = urlsplit(target)
+                  if parsed.scheme or parsed.netloc or not parsed.path:
+                      continue
+                  candidate = (html_path.parent / parsed.path).resolve()
+                  if parsed.path.endswith('/'):
+                      candidate /= 'index.html'
+                  if not candidate.exists():
+                      missing.append(f'{html_path}: {target}')
+          assert not missing, '\n'.join(missing)
+          print('profile corrections validated')
+          PY
+
+      - name: Commit website update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html projects.html experience.html resume.html projects/drone-detection-pipeline.html projects/mirage-contribution.html sitemap.xml
+          git commit -m 'Add Mirage contribution and undergraduate background'
+          git push origin HEAD:main
+
+      - name: Trigger Pages rebuild
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
