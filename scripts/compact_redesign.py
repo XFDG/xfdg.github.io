@@ -596,7 +596,8 @@ for rel in ["index.html", "projects.html", "projects/mooncake-contributions.html
 
 mooncake_text = (ROOT / "projects/mooncake-contributions.html").read_text(encoding="utf-8")
 assert "#3660" in mooncake_text and "#3604" in mooncake_text
-assert "MERGED" in mooncake_text and "Under Review" not in mooncake_text
+assert "MERGED" in mooncake_text
+assert "审阅中的修复" in mooncake_text
 
 missing: list[str] = []
 for html_path in ROOT.rglob("*.html"):

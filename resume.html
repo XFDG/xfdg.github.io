@@ -12,7 +12,7 @@
 <link href="styles.css" rel="stylesheet"/>
 <script defer="" src="script.js"></script>
 </head>
-<body data-page="resume">
+<body class="compact-site" data-page="resume">
 <header class="site-header">
 <div class="shell header-inner">
 <a class="brand" href="index.html"><span class="brand-mark">HF</span><span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span></a>
@@ -83,7 +83,17 @@
 </ul>
 </div>
 </section>
-<section class="resume-section">
+<section class="resume-section" id="resume-open-source">
+<h2>Open Source</h2>
+<div class="resume-entry">
+<div class="resume-entry-head"><div><h3>Mooncake Contributor</h3><span class="sub">Distributed KV Cache · RDMA · Storage</span></div><span class="date">2026.08</span></div>
+<ul><li>向 Mooncake 提交 Transfer Engine / Store 稳定性修复；其中 2 个 PR 已合并，覆盖 RDMA Memory Region 的 Fork State 恢复及端口恢复后的失效 Endpoint / QP 重建。</li></ul>
+</div>
+<div class="resume-entry">
+<div class="resume-entry-head"><div><h3>TensorFlow MUSA Extension Contributor</h3><span class="sub">Framework Backend · Kernel Debugging</span></div><span class="date">2026</span></div>
+<ul><li>参与算子、Fusion、稳定性与 Kernel Timing，公开 PR #57 已合入。</li></ul>
+</div>
+</section><section class="resume-section">
 <h2>Selected Projects</h2>
 <div class="resume-entry">
 <div class="resume-entry-head"><div><h3>高性能 LLM 量化推理 Runtime</h3><span class="sub">PyTorch Extension · CUTLASS · W8A8 / FP8 / AWQ</span></div><span class="date">2025.12 — 进行中</span></div>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="冯浩然向 Mooncake 分布式 KV Cache 项目提交的 RDMA 与 Store 稳定性修复。" name="description"/>
+<meta content="#0b0d10" name="theme-color"/>
+<link href="https://xfdg.github.io/projects/mooncake-contributions.html" rel="canonical"/>
+<title>Mooncake 开源贡献 — Haoran Feng</title>
+<link href="../assets/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="../styles.css" rel="stylesheet"/>
+<script defer="" src="../script.js"></script>
+</head>
+<body class="compact-site" data-page="projects">
+<header class="site-header compact-header">
+<div class="shell header-inner">
+<a aria-label="返回首页" class="brand" href="../index.html">
+<span class="brand-mark">HF</span>
+<span class="brand-copy">Haoran Feng <small>AI Infra</small></span>
+</a>
+<button aria-expanded="false" aria-label="打开导航" class="menu-toggle" type="button"><span></span></button>
+<nav aria-label="主导航" class="site-nav">
+<a data-nav="home" href="../index.html">首页</a>
+<a data-nav="projects" href="../projects.html">项目</a>
+<a data-nav="experience" href="../experience.html">经历</a>
+<a data-nav="writing" href="../writing.html">文章</a>
+<a data-nav="contact" href="../contact.html">联系</a>
+<a class="nav-cta" data-nav="resume" href="../resume.html">简历</a>
+</nav>
+</div>
+</header>
+<main>
+<section class="compact-page-head">
+<div class="shell">
+<div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>Mooncake</span></div>
+<span class="eyebrow">Open Source · Distributed KV Cache · RDMA</span>
+<div class="page-title-line"><h1>Mooncake 开源贡献</h1><p>围绕 Mooncake Store 与 Transfer Engine 的稳定性、资源生命周期和故障恢复提交修复。</p></div>
+<div class="metric-strip detail-strip">
+<div><strong>2</strong><span>Merged PRs</span></div>
+<div><strong>4</strong><span>Open PRs</span></div>
+<div><strong>Store + TE</strong><span>主要模块</span></div>
+<div><strong>2026-08-30</strong><span>状态快照</span></div>
+</div>
+</div>
+</section>
+<section class="dense-section section-line">
+<div class="shell detail-narrow">
+<div class="dense-heading"><h2>已合并贡献</h2><a href="https://github.com/kvcache-ai/Mooncake" rel="noreferrer" target="_blank">Upstream repository ↗</a></div>
+<div class="contribution-table-wrap">
+<table class="compact-table">
+<thead><tr><th>PR</th><th>问题</th><th>修复</th><th>状态</th></tr></thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/kvcache-ai/Mooncake/pull/3660" rel="noreferrer" target="_blank">#3660 ↗</a></td>
+<td>RDMA Memory Region 注销后未恢复 Fork State，持续切分 VMA；高频注册/注销下可能耗尽 <code>vm.max_map_count</code>。</td>
+<td>在 <code>ibv_dereg_mr</code> 成功后对原地址范围调用 <code>MADV_DOFORK</code>，并处理 Deregister 后访问 MR 的生命周期问题。</td>
+<td><span class="status merged">MERGED</span><small>2026-08-26</small></td>
+</tr>
+<tr>
+<td><a href="https://github.com/kvcache-ai/Mooncake/pull/3604" rel="noreferrer" target="_blank">#3604 ↗</a></td>
+<td>RDMA 端口恢复后，Endpoint Store 仍返回已进入 Error 状态的旧 QP，导致恢复后传输持续超时。</td>
+<td>在端口恢复时淘汰 FIFO / SIEVE Store 中的全部失效 Endpoint，使后续请求创建新的 QP。</td>
+<td><span class="status merged">MERGED</span><small>2026-08-27</small></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="dense-section section-line">
+<div class="shell detail-narrow">
+<div class="dense-heading"><h2>审阅中的修复</h2><span>状态可能随上游审阅变化</span></div>
+<div class="issue-list">
+<a href="https://github.com/kvcache-ai/Mooncake/pull/3726" rel="noreferrer" target="_blank"><strong>#3726</strong><span>修复 Offloading Queue “未入队却返回成功”导致的幽灵任务与引用计数泄漏</span><b>OPEN</b></a>
+<a href="https://github.com/kvcache-ai/Mooncake/pull/3661" rel="noreferrer" target="_blank"><strong>#3661</strong><span>为有界 MPSC Queue 增加非阻塞提交，避免 Retry Path 在满队列下永久活锁</span><b>OPEN</b></a>
+<a href="https://github.com/kvcache-ai/Mooncake/pull/3662" rel="noreferrer" target="_blank"><strong>#3662</strong><span>Batch Get Session 使用 Best Replica，支持仅存在于 SSD 的副本</span><b>OPEN</b></a>
+<a href="https://github.com/kvcache-ai/Mooncake/pull/3601" rel="noreferrer" target="_blank"><strong>#3601</strong><span>在提交 Bucket Metadata 前 Flush 数据，恢复 Write-ordering Durability</span><b>OPEN</b></a>
+</div>
+</div>
+</section>
+<section class="dense-section section-line">
+<div class="shell detail-narrow two-column-dense">
+<div>
+<div class="dense-heading"><h2>体现的工程能力</h2></div>
+<ul class="compact-list">
+<li>从 Issue、调用链和资源生命周期中定位分布式系统故障，而不是只修补表层报错。</li>
+<li>覆盖 C++ 并发、RDMA Verbs、QP / MR 生命周期、存储持久性与异步任务状态。</li>
+<li>根据 Review 反馈补充锁粒度、Use-after-free 与失败语义等边界，再完成合入。</li>
+</ul>
+</div>
+<div>
+<div class="dense-heading"><h2>表述边界</h2></div>
+<p class="boundary-note">“为 Mooncake 做开源贡献”是准确表述；已合并部分可写为 Accepted / Merged Contributions。审阅中的 PR 只写 Submitted / Under Review，不作为已经进入上游的交付成果。</p>
+</div>
+</div>
+</section>
+</main>
+<footer class="site-footer compact-footer">
+<div class="shell footer-inner">
+<span>© <span data-year=""></span> Haoran Feng</span>
+<div class="footer-links">
+<a href="mailto:225010160@link.cuhk.edu.cn">Email</a>
+<a href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub</a>
+<a href="https://blog.csdn.net/XFDG01" rel="me noopener noreferrer" target="_blank">CSDN</a>
+<a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" rel="me noopener noreferrer" target="_blank">知乎</a>
+<a href="../resume.html">Resume</a>
+</div>
+</div>
+</footer>
+</body>
+</html>

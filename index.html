@@ -4,285 +4,161 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<meta content="冯浩然的 AI Infra 个人网站：大模型训练推理系统、RL Infra、GPU 算子与性能工程。" name="description"/>
-<meta content="#07090d" name="theme-color"/>
+<meta content="冯浩然的高信息密度 AI Infra 个人主页：LLM 系统、GPU 性能、开源贡献与项目证据。" name="description"/>
+<meta content="#0b0d10" name="theme-color"/>
 <link href="https://xfdg.github.io/" rel="canonical"/>
-<title>Haoran Feng — AI Infra Lab</title>
+<title>Haoran Feng — AI Infra</title>
 <link href="assets/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="assets/site.webmanifest" rel="manifest"/>
 <link href="styles.css" rel="stylesheet"/>
 <script defer="" src="script.js"></script>
 </head>
-<body data-page="home">
-<header class="site-header">
+<body class="compact-site" data-page="home">
+<header class="site-header compact-header">
 <div class="shell header-inner">
 <a aria-label="返回首页" class="brand" href="index.html">
 <span class="brand-mark">HF</span>
-<span class="brand-copy">Haoran Feng <small>AI Infra Lab</small></span>
+<span class="brand-copy">Haoran Feng <small>AI Infra</small></span>
 </a>
 <button aria-expanded="false" aria-label="打开导航" class="menu-toggle" type="button"><span></span></button>
 <nav aria-label="主导航" class="site-nav">
 <a data-nav="home" href="index.html">首页</a>
-<a data-nav="experience" href="experience.html">经历</a>
 <a data-nav="projects" href="projects.html">项目</a>
+<a data-nav="experience" href="experience.html">经历</a>
 <a data-nav="writing" href="writing.html">文章</a>
-<a data-nav="roadmap" href="roadmap.html">Roadmap</a>
 <a data-nav="contact" href="contact.html">联系</a>
-<a class="nav-cta" data-nav="resume" href="resume.html">公开简历</a>
+<a class="nav-cta" data-nav="resume" href="resume.html">简历</a>
 </nav>
 </div>
 </header>
 <main>
-<section class="hero">
-<div class="shell hero-grid">
-<div class="hero-copy reveal">
+<section class="compact-hero">
+<div class="shell">
+<div class="identity-line">
+<div>
 <span class="eyebrow">AI Infrastructure · LLM Systems · GPU Performance</span>
-<h1><span class="gradient-text">把复杂的大模型系统，做得更快、更稳、更可信。</span></h1>
-<p class="hero-lead">我是冯浩然，香港中文大学（深圳）集成电路与系统硕士在读。我的工程工作覆盖 MoE-RL 训推一致性、CUDA Graph / 通信 Kernel 排障、异步推理解码、量化 Runtime 与 H200 Grouped GEMM 性能工程。</p>
-<div class="hero-actions">
-<a class="button primary" href="projects.html">查看核心项目 <span aria-hidden="true">↗</span></a>
-<a class="button" href="experience.html">了解我的经历 <span aria-hidden="true">→</span></a>
-<a class="button" href="contact.html">联系我 <span aria-hidden="true">→</span></a>
+<h1>冯浩然 <span>Haoran Feng</span></h1>
+<p>香港中文大学（深圳）集成电路与系统硕士在读。关注大模型训练推理、RL Infra、GPU Kernel、分布式存储与性能工程。</p>
 </div>
-<div aria-label="公开联系方式" class="hero-links">
-<a href="mailto:225010160@link.cuhk.edu.cn"><span aria-hidden="true">✉</span> 225010160@link.cuhk.edu.cn</a>
-<a href="https://github.com/XFDG" rel="noreferrer" target="_blank"><span aria-hidden="true">↗</span> github.com/XFDG</a>
-<a href="https://blog.csdn.net/XFDG01" rel="me noopener noreferrer" target="_blank"><span aria-hidden="true">↗</span> CSDN / XFDG01</a>
-<a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" rel="me noopener noreferrer" target="_blank"><span aria-hidden="true">↗</span> 知乎主页</a>
-</div>
-<div class="hero-meta">
-<span><i class="status-dot"></i> 2027 届 · 面向 AI Infra / 推理优化机会</span>
-<span>深圳 / 北京</span>
+<div aria-label="快捷链接" class="quick-links">
+<a href="mailto:225010160@link.cuhk.edu.cn">Email</a>
+<a href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub ↗</a>
+<a href="resume.html">Resume</a>
 </div>
 </div>
-<div aria-label="个人技术概览" class="terminal reveal">
-<div class="terminal-bar">
-<span class="terminal-dot"></span>
-<span class="terminal-dot"></span>
-<span class="terminal-dot"></span>
-<span class="terminal-title">haoran@ai-infra:~</span>
-</div>
-<div class="terminal-body">
-<div class="terminal-block">
-<span class="terminal-command">whoami</span>
-<div class="terminal-output"><strong>Haoran Feng / 冯浩然</strong><br/>M.Sc. in Integrated Circuits &amp; Systems</div>
-</div>
-<div class="terminal-block">
-<span class="terminal-command">focus --current</span>
-<div class="terminal-output">LLM post-training infra<br/>inference systems<br/>GPU performance engineering</div>
-</div>
-<div class="terminal-block">
-<span class="terminal-command">stack --show</span>
-<div class="terminal-tags">
-<span>veRL</span><span>Megatron-LM</span><span>vLLM</span><span>SGLang</span><span>CUDA</span><span>CUTLASS</span><span>DeepGEMM</span><span>TensorFlow MUSA</span>
-</div>
-</div>
-<div class="terminal-block">
-<span class="terminal-command">methodology</span>
-<div class="terminal-output">problem → hypothesis → experiment → data → decision</div>
-</div>
-</div>
+<div class="metric-strip">
+<div><strong>2</strong><span>Mooncake merged PRs</span></div>
+<div><strong>8×H200</strong><span>MoE-RL 主实验</span></div>
+<div><strong>1,024</strong><span>GEMM ranges</span></div>
+<div><strong>2027</strong><span>Expected graduation</span></div>
 </div>
 </div>
 </section>
-<section class="section compact">
+<section class="dense-section">
 <div class="shell">
-<div aria-label="技术概览数据" class="stats-grid reveal">
-<div class="stat"><span class="stat-value">8×H200</span><span class="stat-label">MoE-RL 主实验环境</span></div>
-<div class="stat"><span class="stat-value">18</span><span class="stat-label">Router Replay CPU 契约测试</span></div>
-<div class="stat"><span class="stat-value">1,024</span><span class="stat-label">线上 GEMM forward ranges</span></div>
-<div class="stat"><span class="stat-value">2027</span><span class="stat-label">硕士预计毕业</span></div>
-</div>
-</div>
-</section>
-<section class="section section-line" id="about">
-<div class="shell intro-grid">
-<div class="intro-copy reveal">
-<span class="section-kicker">About / 关于我</span>
-<h2>从电子与计算机基础，走向大模型系统的性能深水区。</h2>
-<p>
-            本科阶段，我同时接受了电子科学与计算机科学训练；之后从 C/C++ 工程、国产 GPU 框架适配与算子优化切入，逐步进入 vLLM、DeepGEMM、veRL、Megatron-LM 与 MoE 系统。现在，我更关注一个问题：如何让训练侧、推理侧和底层 Kernel 形成可验证的性能闭环。
-          </p>
-<p>
-            我习惯用工程证据而不是技术名词证明能力：明确问题、设置对照、统一指标、复现实验，再把结论转化为代码、文档和可公开的技术叙事。
-          </p>
-<a class="text-link" href="experience.html">查看完整教育与工作时间线 <span>→</span></a>
-</div>
-<div aria-label="当前技术方向" class="focus-list reveal">
-<div class="focus-item"><span class="focus-index">01</span><strong>LLM Post-training Infrastructure</strong><small>ACTIVE</small></div>
-<div class="focus-item"><span class="focus-index">02</span><strong>Inference Systems &amp; Runtime</strong><small>ACTIVE</small></div>
-<div class="focus-item"><span class="focus-index">03</span><strong>GPU Kernels &amp; Performance</strong><small>DEEPENING</small></div>
-<div class="focus-item"><span class="focus-index">04</span><strong>Heterogeneous Computing</strong><small>FOUNDATION</small></div>
-</div>
-</div>
-</section>
-<section class="section section-line" id="featured-projects">
-<div class="shell">
-<div class="section-title-row reveal">
-<div>
-<span class="section-kicker">Featured Projects / 精选项目</span>
-<h2>用可复现的项目，呈现真实的工程能力。</h2>
-</div>
-<a class="text-link" href="projects.html">浏览全部项目 <span>→</span></a>
-</div>
-<div class="card-grid"><a class="card project-card reveal" href="projects/flashinfer-ftz.html"><div class="card-top"><span class="project-number">01 · 2026</span><span class="badge engineering">GPU DEBUG</span></div><h3>FlashInfer CUDA Graph Hang：FTZ / Sentinel 根因闭环</h3><p>从 sample_tokens timeout 反向定位 GPU 首因，完成位级修复、SASS 对照与 graph replay 回归。</p><div class="project-evidence"><div class="evidence-chip"><strong>0/3→2/2</strong><span>FULL graph</span></div><div class="evidence-chip"><strong>8→0</strong><span>FTZ predicates</span></div><div class="evidence-chip"><strong>PR #3304</strong><span>等价修复</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card reveal" href="projects/router-replay.html"><div class="card-top"><span class="project-number">02 · 2026</span><span class="badge engineering">RL INFRA</span></div><h3>R3 Router Replay：MoE 训推一致性</h3><p>打通 [token, layer, top-k] route 采集、observe/replay 与 response-mask 指标闭环。</p><div class="project-evidence"><div class="evidence-chip"><strong>17–19%→0</strong><span>mismatch</span></div><div class="evidence-chip"><strong>36–145×</strong><span>f_tau_2</span></div><div class="evidence-chip"><strong>4–7×</strong><span>KL</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card reveal" href="projects/oe-async.html"><div class="card-top"><span class="project-number">03 · 2026</span><span class="badge engineering">ASYNC OP</span></div><h3>OE Async：GPU Token History 与 Triton Fused Hash</h3><p>消除异步 decode 热路径中的 CPU 往返，并覆盖 mixed、恢复、slot reuse 与多卡状态。</p><div class="project-evidence"><div class="evidence-chip"><strong>+5.0%</strong><span>TP1 vs sync</span></div><div class="evidence-chip"><strong>+4.6%</strong><span>TP2</span></div><div class="evidence-chip"><strong>+3.0%</strong><span>TP4</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a><a class="card project-card reveal" href="projects/gemm-profiling.html"><div class="card-top"><span class="project-number">04 · 2026</span><span class="badge engineering">GPU PERF</span></div><h3>H200 MoE Grouped GEMM Profiling 与调优</h3><p>纠正 expanded / compact rows 口径，构造 1,024 条 range 回放并扩展 SM90 候选。</p><div class="project-evidence"><div class="evidence-chip"><strong>195,976→29,446</strong><span>rows</span></div><div class="evidence-chip"><strong>+5.3%</strong><span>target</span></div><div class="evidence-chip"><strong>+1.84%</strong><span>aggregate</span></div></div><div class="card-footer-link"><span>查看公开证据与结论边界</span><span>↗</span></div></a></div>
-</div>
-</section>
-<section class="section section-line">
-<div class="shell">
-<div class="section-head reveal">
-<div>
-<span class="section-kicker">Experience / 经历主线</span>
-<h2>不是零散技术栈，而是一条逐步下沉的系统路线。</h2>
-</div>
-<p>从大型 C/C++ 工程，到国产 GPU 框架后端，再到 H200 上的大模型训练推理系统与 GPU 性能优化。</p>
-</div>
-<div class="timeline">
-<div class="timeline-item reveal">
-<span class="timeline-dot"></span>
-<div class="timeline-card">
-<div class="timeline-heading">
-<div><h3>LLM Post-training &amp; Inference Infrastructure</h3><span class="timeline-company">企业 AI Infra 项目 · 脱敏展示</span></div>
-<span class="timeline-date">2026.05 — 2026.07</span>
-</div>
-<p>围绕 veRL、Megatron-LM、vLLM/SGLang、Router Replay、CUDA Graph 与 H200 MoE 热路径，完成训推一致性诊断、实验设计和算子级性能分析。</p>
-<div class="tag-list"><span class="tag">veRL</span><span class="tag">Megatron-LM</span><span class="tag">vLLM</span><span class="tag">H200</span><span class="tag">MoE</span></div>
-</div>
-</div>
-<div class="timeline-item reveal">
-<span class="timeline-dot"></span>
-<div class="timeline-card">
-<div class="timeline-heading">
-<div><h3>算子与编译器优化实习生</h3><span class="timeline-company">摩尔线程 · TensorFlow MUSA Extension</span></div>
-<span class="timeline-date">2026.02 — 2026.05</span>
-</div>
-<p>参与 TensorFlow on MUSA 的算子支持、插件集成、图优化与稳定性修复，形成从框架语义、Host/Device 路径到 Device Kernel 的完整理解。</p>
-<div class="tag-list"><span class="tag">TensorFlow</span><span class="tag">MUSA</span><span class="tag">C++</span><span class="tag">Fusion</span><span class="tag">Profiling</span></div>
-</div>
-</div>
-<div class="timeline-item reveal">
-<span class="timeline-dot"></span>
-<div class="timeline-card">
-<div class="timeline-heading">
-<div><h3>通用软件工程师实习生</h3><span class="timeline-company">华为 · 大型 C/C++ 工程</span></div>
-<span class="timeline-date">2024.08 — 2024.12</span>
-</div>
-<p>维护静态分析工具链，进行规则重构、日志定位与 Python 自动化开发，建立大型工程代码阅读、测试验证和持续交付基础。</p>
-<div class="tag-list"><span class="tag">C/C++</span><span class="tag">Python</span><span class="tag">Static Analysis</span><span class="tag">CI</span></div>
-</div>
-</div>
-</div>
-</div>
-</section>
-<section class="section section-line">
-<div class="shell">
-<div class="section-head reveal">
-<div>
-<span class="section-kicker">Evidence Loop / 能力证据闭环</span>
-<h2>把一次实验，沉淀成长期可复用的技术资产。</h2>
-</div>
-<p>这是这个网站区别于普通线上简历的核心：每个项目都要能够解释问题、数据、边界与工程决策。</p>
-</div>
-<div aria-label="实验闭环" class="loop reveal">
-<div class="loop-step"><span>01</span><strong>问题</strong></div>
-<div class="loop-step"><span>02</span><strong>假设</strong></div>
-<div class="loop-step"><span>03</span><strong>实验</strong></div>
-<div class="loop-step"><span>04</span><strong>数据</strong></div>
-<div class="loop-step"><span>05</span><strong>结论</strong></div>
-<div class="loop-step"><span>06</span><strong>决策</strong></div>
-<div class="loop-step"><span>07</span><strong>叙事</strong></div>
-</div>
-</div>
-</section>
-<section class="section section-line">
-<div class="shell">
-<div class="section-title-row reveal">
-<div>
-<span class="section-kicker">Writing / 技术写作</span>
-<h2>把系统问题讲清楚，也把失败路径留下来。</h2>
-</div>
-<a class="text-link" href="writing.html">查看文章规划 <span>→</span></a>
-</div>
-<div class="card-grid three">
-<a class="card article-card reveal" href="writing.html#router-replay-note">
-<div class="article-meta"><span class="project-number">SYSTEMS</span><span class="badge progress">DRAFT</span></div>
-<h3>Router Replay：从 token-layer-topk 到训推一致性</h3>
-<p>解释为什么 MoE rollout 与 training 会产生路由差异，以及怎样设计一致性指标。</p>
-<div class="card-footer-link"><span>阅读摘要</span><span>→</span></div>
+<div class="dense-heading"><h2>Latest open-source activity</h2><span>Snapshot · 2026-08-30</span></div>
+<a class="activity-row" href="projects/mooncake-contributions.html">
+<div class="activity-title"><strong>Mooncake</strong><span>Distributed KV Cache · Store · RDMA Transfer Engine</span></div>
+<p>已合并两项 Transfer Engine 稳定性修复：恢复 RDMA Memory Region 的 Fork State，避免 VMA 耗尽；在端口恢复时淘汰失效 Endpoint / QP，使连接重新建立。</p>
+<div class="activity-meta"><span>2 merged</span><span>4 under review</span><span>View evidence ↗</span></div>
 </a>
-<a class="card article-card reveal" href="writing.html#bi-gemm-note">
-<div class="article-meta"><span class="project-number">KERNEL</span><span class="badge planned">PLANNED</span></div>
-<h3>为什么 Batch-Invariant GEMM 更确定，却可能更慢</h3>
-<p>从 Split-K、Reduction 顺序与 Full-K Tiling 解释确定性和性能之间的取舍。</p>
-<div class="card-footer-link"><span>阅读摘要</span><span>→</span></div>
+</div>
+</section>
+<section class="dense-section section-line" id="selected-work">
+<div class="shell">
+<div class="dense-heading"><h2>Selected work</h2><a href="projects.html">All projects →</a></div>
+<div class="work-list">
+<a class="work-row" href="projects/mooncake-contributions.html">
+<span class="work-index">01</span>
+<span class="work-main"><strong>Mooncake：分布式 KV Cache / RDMA 稳定性贡献</strong><small>向 Mooncake Store 与 Transfer Engine 提交稳定性修复；当前公开记录包含 2 个已合并 PR 与多项审阅中修复。</small></span>
+<span class="work-evidence">2 merged · 4 open</span>
+<span class="work-badge">OPEN SOURCE</span>
+<span class="work-arrow">↗</span>
 </a>
-<a class="card article-card reveal" href="writing.html#moe-gemm-note">
-<div class="article-meta"><span class="project-number">PERFORMANCE</span><span class="badge progress">NOTES</span></div>
-<h3>H200 上如何正确 Profile MoE Grouped GEMM</h3>
-<p>避免 rows 统计口径、expert 分布与线上离线 shape 对齐中的常见误判。</p>
-<div class="card-footer-link"><span>阅读摘要</span><span>→</span></div>
+<a class="work-row" href="projects/flashinfer-ftz.html">
+<span class="work-index">02</span>
+<span class="work-main"><strong>FlashInfer CUDA Graph Hang：FTZ / Sentinel 根因</strong><small>从下游 timeout 反向定位 fused allreduce + RMSNorm 的 GPU 首因，并完成位级修复与 graph replay 回归。</small></span>
+<span class="work-evidence">0/3→2/2 · SASS 8→0</span>
+<span class="work-badge">GPU DEBUG</span>
+<span class="work-arrow">↗</span>
+</a>
+<a class="work-row" href="projects/router-replay.html">
+<span class="work-index">03</span>
+<span class="work-main"><strong>R3 Router Replay：MoE 训推一致性</strong><small>贯通 token-layer-top-k 路由采集、observe/replay、response mask 与概率漂移指标。</small></span>
+<span class="work-evidence">mismatch 17–19%→0</span>
+<span class="work-badge">RL INFRA</span>
+<span class="work-arrow">↗</span>
+</a>
+<a class="work-row" href="projects/oe-async.html">
+<span class="work-index">04</span>
+<span class="work-main"><strong>OE Async：GPU Token History 与 Triton Fused Hash</strong><small>消除异步 decode 热路径中的 CPU 往返，并验证 mixed batch、恢复、slot reuse 与多卡状态。</small></span>
+<span class="work-evidence">TP1 +5.0% · TP2/4 0 mismatch</span>
+<span class="work-badge">ASYNC OP</span>
+<span class="work-arrow">↗</span>
+</a>
+<a class="work-row" href="projects/gemm-profiling.html">
+<span class="work-index">05</span>
+<span class="work-main"><strong>H200 MoE Grouped GEMM Profiling 与调优</strong><small>纠正 expanded / compact rows 口径，构造线上回放并扩展 SM90 候选配置。</small></span>
+<span class="work-evidence">1,024 ranges · target +5.3%</span>
+<span class="work-badge">GPU PERF</span>
+<span class="work-arrow">↗</span>
+</a>
+<a class="work-row" href="projects/deepgemm-offline.html">
+<span class="work-index">06</span>
+<span class="work-main"><strong>DeepGEMM 离线 Cubin 与 Wheel 交付</strong><small>将运行时 JIT 产物转化为可校验 bundle，覆盖单卡与 TP=2 的 cold compile 清零验证。</small></span>
+<span class="work-evidence">109→359 kernels · load 7.7×</span>
+<span class="work-badge">DELIVERY</span>
+<span class="work-arrow">↗</span>
+</a>
+<a class="work-row" href="projects/musa-extension.html">
+<span class="work-index">07</span>
+<span class="work-main"><strong>TensorFlow MUSA Extension</strong><small>处理算子、Fusion、HostMemory、长跑稳定性与 Kernel Timing，并保留公开合入记录。</small></span>
+<span class="work-evidence">PR #57 merged · 11/11 fused</span>
+<span class="work-badge">OPEN SOURCE</span>
+<span class="work-arrow">↗</span>
 </a>
 </div>
 </div>
 </section>
-<section class="section section-line">
-<div class="shell">
-<div class="section-title-row reveal">
+<section class="dense-section section-line">
+<div class="shell two-column-dense">
 <div>
-<span class="section-kicker">Roadmap / 项目规划</span>
-<h2>持续补齐从 Kernel 到系统的完整能力。</h2>
+<div class="dense-heading"><h2>Experience</h2><a href="experience.html">Details →</a></div>
+<div class="timeline-compact">
+<div><time>2026.04 — Present</time><strong>大模型系统与高性能计算</strong><span>MoE-RL · CUDA Graph · OE Async · H200 GEMM</span></div>
+<div><time>2026.02 — 2026.05</time><strong>TensorFlow MUSA Extension</strong><span>Framework backend · Fusion · Kernel debugging</span></div>
+<div><time>2024.08 — 2024.12</time><strong>大型 C/C++ 软件工程</strong><span>Static analysis · Automation · CI</span></div>
 </div>
-<a class="text-link" href="roadmap.html">查看完整 Roadmap <span>→</span></a>
 </div>
-<div class="roadmap-grid">
-<div class="roadmap-column reveal">
-<h3>NOW</h3>
-<ul class="check-list">
-<li class="done">整理 Router Replay 实验与公开叙事</li>
-<li>补齐 vLLM / DeepGEMM 端到端性能案例</li>
-<li>沉淀 H200/B200 架构迁移知识</li>
-</ul>
-</div>
-<div class="roadmap-column reveal">
-<h3>NEXT</h3>
-<ul class="check-list">
-<li>发布首篇完整实验复盘</li>
-<li>建立可复现 Benchmark 模板</li>
-<li>增加 CUDA / CuTe Kernel 公开项目</li>
-</ul>
-</div>
-<div class="roadmap-column reveal">
-<h3>LATER</h3>
-<ul class="check-list">
-<li>深入 MoE 系统与通信优化</li>
-<li>持续贡献推理引擎或算子仓库</li>
-<li>形成个人 AI Infra 知识体系</li>
-</ul>
+<div>
+<div class="dense-heading"><h2>Open source</h2><span>Accepted contributions</span></div>
+<div class="os-list">
+<a href="projects/mooncake-contributions.html"><strong>Mooncake</strong><span>2 merged bugfix PRs in RDMA lifecycle and recovery</span><b>↗</b></a>
+<a href="projects/musa-extension.html"><strong>TensorFlow MUSA</strong><span>Kernel timing and framework-backend contribution</span><b>↗</b></a>
 </div>
 </div>
 </div>
 </section>
-<section class="section">
+<section class="dense-section section-line">
 <div class="shell">
-<div class="cta-panel reveal">
-<div>
-<span class="section-kicker">Contact / 联系</span>
-<h2>欢迎交流 AI Infra、推理优化与 GPU 性能工程。</h2>
-<p>无论是技术讨论、实习与校招机会，还是开源协作，都可以通过邮件或 GitHub 联系我。</p>
-</div>
-<div class="button-row">
-<a class="button primary" href="mailto:225010160@link.cuhk.edu.cn">发送邮件</a>
-<a class="button" href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub ↗</a>
-<a class="text-link" href="contact.html">完整联系方式 <span>→</span></a>
-</div>
+<div class="dense-heading"><h2>Writing &amp; profiles</h2><a href="writing.html">Writing index →</a></div>
+<div class="profile-links">
+<a href="https://blog.csdn.net/XFDG01" rel="me noopener noreferrer" target="_blank"><strong>CSDN</strong><span>工程教程、Benchmark 与排障复盘</span></a>
+<a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" rel="me noopener noreferrer" target="_blank"><strong>知乎</strong><span>机制解释、技术比较与观点讨论</span></a>
+<a href="https://github.com/XFDG" rel="noreferrer" target="_blank"><strong>GitHub</strong><span>代码、PR 与公开工程证据</span></a>
 </div>
 </div>
 </section>
 </main>
-<footer class="site-footer">
+<footer class="site-footer compact-footer">
 <div class="shell footer-inner">
-<span>© <span data-year=""></span> Haoran Feng. Built as an evolving AI Infra evidence lab.</span>
-<div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub</a><a href="https://blog.csdn.net/XFDG01" rel="me noopener noreferrer" target="_blank">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" rel="me noopener noreferrer" target="_blank">知乎</a><a href="resume.html">Resume</a></div>
+<span>© <span data-year=""></span> Haoran Feng</span>
+<div class="footer-links">
+<a href="mailto:225010160@link.cuhk.edu.cn">Email</a>
+<a href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub</a>
+<a href="https://blog.csdn.net/XFDG01" rel="me noopener noreferrer" target="_blank">CSDN</a>
+<a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" rel="me noopener noreferrer" target="_blank">知乎</a>
+<a href="resume.html">Resume</a>
+</div>
 </div>
 </footer>
 </body>
