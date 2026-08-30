@@ -1,11 +1,15 @@
 (() => {
+  document.documentElement.style.colorScheme = 'light';
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeMeta) themeMeta.setAttribute('content', '#f4f2ed');
+
   const header = document.querySelector('.site-header');
   const menuToggle = document.querySelector('.menu-toggle');
   const nav = document.querySelector('.site-nav');
   const page = document.body.dataset.page;
 
   const updateHeader = () => {
-    header?.classList.toggle('is-scrolled', window.scrollY > 12);
+    header?.classList.toggle('is-scrolled', window.scrollY > 8);
   };
 
   updateHeader();
@@ -30,21 +34,7 @@
     document.querySelectorAll(`[data-nav="${page}"]`).forEach((item) => item.classList.add('active'));
   }
 
-  const revealObserver = 'IntersectionObserver' in window
-    ? new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.12 })
-    : null;
-
-  document.querySelectorAll('.reveal').forEach((element) => {
-    if (revealObserver) revealObserver.observe(element);
-    else element.classList.add('visible');
-  });
+  document.querySelectorAll('.reveal').forEach((element) => element.classList.add('visible'));
 
   document.querySelectorAll('[data-year]').forEach((element) => {
     element.textContent = String(new Date().getFullYear());
