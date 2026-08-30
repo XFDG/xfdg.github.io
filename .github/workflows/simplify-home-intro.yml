@@ -21,24 +21,16 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          from bs4 import BeautifulSoup
 
           p = Path('index.html')
-          soup = BeautifulSoup(p.read_text(encoding='utf-8'), 'html.parser')
-
-          hero = soup.select_one('.hero-statement')
-          if not hero:
-              raise SystemExit('hero statement not found')
-          hero.string = '港中深集成电路硕士在读，关注大模型系统与 GPU 性能工程。'
-
-          facts = soup.select_one('.hero-facts')
-          if facts:
-              for row in list(facts.find_all('div', recursive=False)):
-                  dt = row.find('dt')
-                  if dt and dt.get_text(' ', strip=True) == 'Education':
-                      row.decompose()
-
-          p.write_text(str(soup), encoding='utf-8')
+          text = p.read_text(encoding='utf-8')
+          old = '香港中文大学（深圳）集成电路与系统硕士在读，本科毕业于山东大学电子科学与技术专业，并辅修计算机科学与技术。关注大模型训练推理、RL Infra、GPU Kernel、分布式存储与性能工程。'
+          new = '港中深集成电路硕士在读，关注大模型系统与 GPU 性能工程。'
+          if old not in text:
+              raise SystemExit('old hero copy not found')
+          text = text.replace(old, new, 1)
+          text = text.replace('<div><dt>Education</dt><dd>CUHK-Shenzhen · Shandong University</dd></div>', '', 1)
+          p.write_text(text, encoding='utf-8')
           PY
       - name: Commit
         run: |
