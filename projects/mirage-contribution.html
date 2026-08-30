@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Mirage PR #755：修复 Qwen3 lm_head padding 行参与 Argmax 导致越界 token id 的正确性问题。">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/projects/mirage-contribution.html">
+  <title>Mirage 开源贡献 — Haoran Feng</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="projects">
+  <header class="site-header"><div class="shell header-inner"><a class="brand" href="../index.html"><span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span></a><button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button><nav class="site-nav" aria-label="主导航"><a href="../index.html" data-nav="home">首页</a><a href="../projects.html" data-nav="projects">项目</a><a href="../experience.html" data-nav="experience">经历</a><a href="../writing.html" data-nav="writing">文章</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">简历</a></nav></div></header>
+  <main>
+    <section class="compact-page-head"><div class="shell"><div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>Mirage</span></div><span class="eyebrow">Open Source · Qwen3 Inference · Correctness</span><div class="page-title-line"><h1>Mirage：修复 Argmax Padding 导致的越界 Token</h1><p>PR #755 已于 2026-08-26 合并到上游。</p></div><div class="metric-strip detail-strip"><div><strong>#755</strong><span>Merged upstream PR</span></div><div><strong>9</strong><span>Qwen3 demo scripts</span></div><div><strong>2</strong><span>Related issues closed</span></div><div><strong>Correctness</strong><span>Valid token id guarantee</span></div></div></div></section>
+    <section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Root cause</h2><a href="https://github.com/mirage-project/mirage/pull/755" target="_blank" rel="noreferrer">GitHub PR ↗</a></div><p>Qwen3 Demo 为满足任务图的整除要求，将 <code>lm_head</code> 从真实词表大小 151,936 补到 153,600 行。原实现使用 0 填充；当所有真实 Logit 都为负数时，补零行会赢得 Argmax，返回大于等于 <code>vocab_size</code> 的非法 Token ID。</p></div></section>
+    <section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Fix</h2><span>Finite negative padding</span></div><div class="timeline-compact"><div><time>Before</time><strong>Zero padding</strong><span>Padding Logit 恒为 0，可能压过所有真实负 Logit。</span></div><div><time>After</time><strong>-1e4 padding</strong><span>补齐行不会参与有效 Argmax，同时保持 BF16 可表示的有限数值。</span></div><div><time>Scope</time><strong>9 Qwen3 demos</strong><span>统一修复 Demo、Hopper、30B-A3B、Eagle3、Sampling、Debug、Kernel Reuse 与 Chat 等入口。</span></div></div></div></section>
+    <section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Verification</h2><span>Merged · Approved</span></div><ul class="compact-list"><li>在 Qwen3-8B BF16 路径复现全负真实 Logit 时产生越界 Padding Index。</li><li>修复后 Argmax 始终返回 <code>[0, vocab_size)</code> 内的合法 Token ID。</li><li>PR 获上游 Review 通过并合并，同时关闭相关 Issue #751 与 #752。</li></ul><p class="boundary-note">这是一个行数很小但语义明确的正确性修复：贡献重点在于从 Padding、Logit 分布与 Argmax 扫描范围之间建立根因链路，而不是代码改动规模。</p></div></section>
+  </main>
+  <footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://github.com/mirage-project/mirage/pull/755" target="_blank" rel="noreferrer">PR #755</a><a href="../resume.html">Resume</a></div></div></footer>
+</body>
+</html>

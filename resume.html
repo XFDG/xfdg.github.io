@@ -59,7 +59,7 @@
 </div>
 <div class="resume-entry">
 <div class="resume-entry-head"><div><h3>山东大学</h3><span class="sub">电子科学与技术 · 本科；计算机科学与技术 · 辅修</span></div><span class="date">2021.09 — 2025.06</span></div>
-<ul><li>学业奖学金（前 20%）、特长奖学金（竞赛创新）；电子与计算机交叉课程基础。</li></ul>
+<ul><li>电子科学与技术本科，计算机科学与技术辅修；获学业奖学金（前 20%）及竞赛创新特长奖学金。</li></ul>
 </div>
 </section><section class="resume-section" id="resume-research">
 <h2>Research</h2>
@@ -92,19 +92,24 @@
 </div>
 </section>
 <section class="resume-section" id="resume-open-source">
-<h2>Open Source</h2>
+<h2>Open Source Contributions</h2>
+
 <div class="resume-entry">
 <div class="resume-entry-head"><div><h3>Mooncake Contributor</h3><span class="sub">Distributed KV Cache · RDMA · Storage</span></div><span class="date">2026.08</span></div>
-<ul><li>向 Mooncake 提交 Transfer Engine / Store 稳定性修复；其中 2 个 PR 已合并，覆盖 RDMA Memory Region 的 Fork State 恢复及端口恢复后的失效 Endpoint / QP 重建。</li></ul>
-</div>
-
-</section><section class="resume-section">
+<ul><li>向 Mooncake 提交 Transfer Engine / Store 稳定性修复；其中 2 个 PR 已合并，覆盖 RDMA Memory Region Fork State 恢复及端口恢复后的失效 Endpoint / QP 重建。</li></ul>
+</div><div class="resume-entry">
+<div class="resume-entry-head"><div><h3>Mirage Contributor</h3><span class="sub">Qwen3 Inference · Argmax Correctness</span></div><span class="date">2026.08</span></div>
+<ul><li>提交并合入 <a href="https://github.com/mirage-project/mirage/pull/755" rel="noreferrer" target="_blank">PR #755</a>：定位 lm_head 零填充行在真实 logits 全为负数时赢得 Argmax、产生越界 Token ID 的根因，并将 9 个 Qwen3 Demo 的填充值改为 -1e4。</li></ul>
+</div></section><section class="resume-section">
 <h2>Selected Projects</h2>
 <div class="resume-entry">
 <div class="resume-entry-head"><div><h3>高性能 LLM 量化推理 Runtime</h3><span class="sub">PyTorch Extension · CUTLASS · W8A8 / FP8 / AWQ</span></div><span class="date">2025.12 — 进行中</span></div>
 <ul><li>设计轻量推理 Runtime，基于 CUTLASS 实现 W8A8 GEMM，探索量化数据结构、内存布局、Decode GEMV 与端到端正确性/性能验证。</li></ul>
 </div>
-</section>
+<div class="resume-entry">
+<div class="resume-entry-head"><div><h3>ResNet 半监督图像分类</h3><span class="sub">ResNet-18 · Pseudo-labeling · Data Augmentation</span></div><span class="date">2024.03 — 2024.06</span></div>
+<ul><li>构建端到端图像分类流水线，以伪标签和混合增强缓解少标签与类别不平衡，将 Top-1 准确率由 51.8% 提升至 85.1%，获得 <a href="https://www.kaggle.com/competitions/dl2023autumexp2" rel="noreferrer" target="_blank">Kaggle 竞赛第 7 名</a>。</li></ul>
+</div></section>
 <section class="resume-section">
 <h2>Technical Stack</h2>
 <p style="font-size:.84rem;margin:0;color:#aeb6c4"><strong style="color:#f5f7fb">Systems:</strong> veRL, Megatron-LM, vLLM, SGLang, TensorFlow, PyTorch Extension · <strong style="color:#f5f7fb">GPU:</strong> CUDA, CUTLASS, CuTe, DeepGEMM, Nsight Systems/Compute, MUSA · <strong style="color:#f5f7fb">Engineering:</strong> C++, Python, Linux, Docker, Git, Benchmark &amp; Ablation.</p>

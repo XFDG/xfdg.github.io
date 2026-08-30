@@ -49,64 +49,76 @@
 <span class="work-evidence">2 merged · 4 open</span>
 <span class="work-badge">OPEN SOURCE</span>
 <span class="work-arrow">↗</span>
+</a><a class="work-row filter-item" data-category="opensource systems inference" href="projects/mirage-contribution.html">
+<span class="work-index">02</span>
+<span class="work-main"><strong>Mirage：修复 Qwen3 Argmax Padding 越界 Token</strong><small>定位 lm_head 补零行在真实 logits 全为负数时抢占 Argmax 的问题，以负大值填充保证输出 Token 始终落在真实词表范围内。</small></span>
+<span class="work-evidence">PR #755 merged · 9 demos</span>
+<span class="work-badge">OPEN SOURCE</span>
+<span class="work-arrow">↗</span>
 </a>
 <a class="work-row filter-item" data-category="systems inference gpu" href="projects/flashinfer-ftz.html">
-<span class="work-index">02</span>
+<span class="work-index">03</span>
 <span class="work-main"><strong>FlashInfer CUDA Graph Hang：FTZ / Sentinel 根因</strong><small>从下游 timeout 反向定位 fused allreduce + RMSNorm 的 GPU 首因，并完成位级修复与 graph replay 回归。</small></span>
 <span class="work-evidence">0/3→2/2 · SASS 8→0</span>
 <span class="work-badge">GPU DEBUG</span>
 <span class="work-arrow">↗</span>
 </a>
 <a class="work-row filter-item" data-category="rl systems inference" href="projects/router-replay.html">
-<span class="work-index">03</span>
+<span class="work-index">04</span>
 <span class="work-main"><strong>R3 Router Replay：MoE 训推一致性</strong><small>贯通 token-layer-top-k 路由采集、observe/replay、response mask 与概率漂移指标。</small></span>
 <span class="work-evidence">mismatch 17–19%→0</span>
 <span class="work-badge">RL INFRA</span>
 <span class="work-arrow">↗</span>
 </a>
 <a class="work-row filter-item" data-category="systems inference gpu" href="projects/oe-async.html">
-<span class="work-index">04</span>
+<span class="work-index">05</span>
 <span class="work-main"><strong>OE Async：GPU Token History 与 Triton Fused Hash</strong><small>消除异步 decode 热路径中的 CPU 往返，并验证 mixed batch、恢复、slot reuse 与多卡状态。</small></span>
 <span class="work-evidence">TP1 +5.0% · TP2/4 0 mismatch</span>
 <span class="work-badge">ASYNC OP</span>
 <span class="work-arrow">↗</span>
 </a>
 <a class="work-row filter-item" data-category="gpu inference" href="projects/gemm-profiling.html">
-<span class="work-index">05</span>
+<span class="work-index">06</span>
 <span class="work-main"><strong>H200 MoE Grouped GEMM Profiling 与调优</strong><small>纠正 expanded / compact rows 口径，构造线上回放并扩展 SM90 候选配置。</small></span>
-<span class="work-evidence">1,024 ranges · target +5.3%</span>
+<span class="work-evidence">工作量口径纠正 4×–6× · target +5.3%</span>
 <span class="work-badge">GPU PERF</span>
 <span class="work-arrow">↗</span>
 </a>
 <a class="work-row filter-item" data-category="systems inference gpu" href="projects/deepgemm-offline.html">
-<span class="work-index">06</span>
+<span class="work-index">07</span>
 <span class="work-main"><strong>DeepGEMM 离线 Cubin 与 Wheel 交付</strong><small>将运行时 JIT 产物转化为可校验 bundle，覆盖单卡与 TP=2 的 cold compile 清零验证。</small></span>
 <span class="work-evidence">109→359 kernels · load 7.7×</span>
 <span class="work-badge">DELIVERY</span>
 <span class="work-arrow">↗</span>
 </a>
 <a class="work-row filter-item" data-category="heterogeneous gpu systems" href="projects/musa-extension.html">
-<span class="work-index">07</span>
+<span class="work-index">08</span>
 <span class="work-main"><strong>TensorFlow MUSA Extension</strong><small>摩尔线程实习期间负责 TensorFlow MUSA 后端、算子、Fusion、HostMemory、稳定性与 Kernel 调试工具。</small></span>
 <span class="work-evidence">PR #57 merged · 11/11 fused</span>
 <span class="work-badge">FRAMEWORK</span>
 <span class="work-arrow">↗</span>
 </a>
 <a class="work-row filter-item" data-category="systems inference gpu" href="projects/quant-runtime.html">
-<span class="work-index">08</span>
+<span class="work-index">09</span>
 <span class="work-main"><strong>LLMQRT 量化推理 Runtime</strong><small>贯通 W4A16、W8A8、FP8、Attention 后端、KV Cache 与 H200 kernel 适配。</small></span>
 <span class="work-evidence">AWQ · INT8 · FP8</span>
 <span class="work-badge">RUNTIME</span>
 <span class="work-arrow">↗</span>
 </a>
 <a class="work-row filter-item" data-category="ml systems" href="projects/drone-detection-pipeline.html">
-<span class="work-index">09</span>
-<span class="work-main"><strong>无人机检测：171K 样本数据工程与多 GPU 实验流水线</strong><small>统一三套数据集，构建六模型实验、多 GPU 调度、断点恢复与可追溯结果汇总。</small></span>
+<span class="work-index">10</span>
+<span class="work-main"><strong>无人机检测实验流水线</strong><small>统一三套数据集，构建六模型实验、多 GPU 调度、断点恢复与可追溯结果汇总。</small></span>
 <span class="work-evidence">171,568 samples · 14/14 smoke</span>
 <span class="work-badge">ML SYSTEMS</span>
 <span class="work-arrow">↗</span>
 </a>
-</div>
+<a class="work-row filter-item" data-category="ml" href="https://www.kaggle.com/competitions/dl2023autumexp2" rel="noreferrer" target="_blank">
+<span class="work-index">11</span>
+<span class="work-main"><strong>ResNet 半监督图像分类</strong><small>本科阶段构建 ResNet-18 分类流水线，以伪标签和混合数据增强缓解少标签与类别不平衡问题。</small></span>
+<span class="work-evidence">Top-1 51.8%→85.1% · 7th</span>
+<span class="work-badge">EARLIER WORK</span>
+<span class="work-arrow">↗</span>
+</a></div>
 <p class="index-note">企业项目仅展示脱敏后的方法、聚合结果与公开边界；开源贡献以 GitHub PR 状态为准。</p>
 </div>
 </section>
