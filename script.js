@@ -1,5 +1,25 @@
 (() => {
   document.documentElement.style.colorScheme = 'light';
+  const rootStyle = document.documentElement.style;
+  const legacyTokens = {
+    '--bg': 'var(--paper)',
+    '--bg-soft': 'var(--paper-2)',
+    '--surface': 'transparent',
+    '--surface-solid': 'var(--paper)',
+    '--surface-2': 'var(--paper-2)',
+    '--text': 'var(--ink)',
+    '--text-soft': 'var(--ink-soft)',
+    '--line': 'var(--rule)',
+    '--line-strong': 'var(--rule-strong)',
+    '--accent-strong': 'var(--accent)',
+    '--accent-2': 'var(--accent)',
+    '--shadow': 'none',
+    '--radius-sm': '0px',
+    '--radius': '0px',
+    '--radius-lg': '0px'
+  };
+  Object.entries(legacyTokens).forEach(([name, value]) => rootStyle.setProperty(name, value));
+
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   if (themeMeta) themeMeta.setAttribute('content', '#f4f2ed');
 
