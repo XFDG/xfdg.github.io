@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Converting runtime compilation artifacts into a complete, verifiable bundle for isolated production environments.">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/en/projects/deepgemm-offline.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/deepgemm-offline.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/deepgemm-offline.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/deepgemm-offline.html">
+  <title>DeepGEMM offline cubin and wheel delivery — Haoran Feng</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="projects">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../../en/index.html" aria-label="Home">
+      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../../en/index.html">Home</a><a data-nav="projects" href="../../en/projects.html">Work</a><a data-nav="experience" href="../../en/experience.html">Experience</a><a data-nav="writing" href="../../en/writing.html">Writing</a><a data-nav="contact" href="../../en/contact.html">Contact</a><a data-nav="resume" href="../../en/resume.html" class="nav-cta">Résumé</a></nav>
+  </div>
+</header>
+<main>
+
+<section class="compact-page-head">
+  <div class="shell">
+    <div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>DeepGEMM offline cubin and wheel delivery</span></div>
+    <span class="eyebrow">Inference Delivery · JIT · Offline Runtime</span>
+    <div class="page-title-line"><h1>DeepGEMM offline cubin and wheel delivery</h1><p>Converting runtime compilation artifacts into a complete, verifiable bundle for isolated production environments.</p></div>
+    <div class="metric-strip detail-strip"><div><strong>109→359</strong><span>Bundled kernels</span></div><div><strong>0</strong><span>Cold compile in 8 models</span></div><div><strong>TP=2</strong><span>Representative coverage</span></div><div><strong>7.7×</strong><span>Precompiled load</span></div></div>
+  </div>
+</section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Problem</h2><span>JIT and isolated environments do not mix</span></div><p>Runtime compilation can fail or add unpredictable startup cost in environments without compilers, network access, or writable caches.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Pipeline</h2><span>Collect, union, verify, package</span></div><p>Required shapes were collected from model execution, cubins were unioned and deduplicated, integrity metadata was generated, and the result was packaged into an offline-installable wheel/bundle.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Coverage</h2><span>Single-GPU and tensor parallel</span></div><p>Eight single-GPU model configurations and a representative TP=2 configuration loaded without cold compilation in the tested scope.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Claim boundary</h2><span>Startup result, not hot GEMM speed</span></div><p class="boundary-note">The 7.7× figure refers to cold/precompiled loading behavior. It is not a claim that steady-state GEMM TFLOPS improved by 7.7×.</p></div></section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="button-row"><a class="button primary" href="https://github.com/deepseek-ai/DeepGEMM" target="_blank" rel="noreferrer">Public source ↗</a><a class="button" href="../projects.html">All projects</a></div></div></section>
+
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../../en/resume.html">Résumé</a></div></div></footer>
+</body>
+</html>

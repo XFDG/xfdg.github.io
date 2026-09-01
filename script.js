@@ -81,7 +81,7 @@
       const email = button.dataset.copyEmail;
       try {
         await navigator.clipboard.writeText(email);
-        button.textContent = '邮箱已复制';
+        button.textContent = document.documentElement.lang.startsWith('en') ? 'Copied' : '邮箱已复制';
         setTimeout(() => { button.textContent = original; }, 1600);
       } catch {
         window.location.href = `mailto:${email}`;
@@ -102,4 +102,52 @@
       });
     });
   });
+})();
+
+
+// bilingual-language-switch
+(() => {
+  const path = window.location.pathname || '/';
+  const isEnglish = path === '/en' || path.startsWith('/en/');
+  if (isEnglish) document.documentElement.lang = 'en';
+
+  const normalized = path.replace(/\/index\.html$/, '/');
+  let counterpart;
+  if (isEnglish) {
+    counterpart = normalized.replace(/^\/en/, '') || '/';
+    if (!counterpart.startsWith('/')) counterpart = `/${counterpart}`;
+  } else {
+    counterpart = normalized === '/' ? '/en/' : `/en${normalized}`;
+  }
+
+  const nav = document.querySelector('.site-nav');
+  if (!nav || nav.querySelector('.language-switch')) return;
+
+  const switcher = document.createElement('span');
+  switcher.className = 'language-switch';
+  switcher.setAttribute('aria-label', isEnglish ? 'Language' : '语言');
+
+  const zh = document.createElement('a');
+  zh.href = isEnglish ? counterpart : normalized;
+  zh.textContent = '中';
+  zh.lang = 'zh-CN';
+  zh.classList.toggle('is-active', !isEnglish);
+  zh.setAttribute('aria-current', !isEnglish ? 'page' : 'false');
+
+  const divider = document.createElement('span');
+  divider.className = 'language-divider';
+  divider.textContent = '/';
+
+  const en = document.createElement('a');
+  en.href = isEnglish ? normalized : counterpart;
+  en.textContent = 'EN';
+  en.lang = 'en';
+  en.classList.toggle('is-active', isEnglish);
+  en.setAttribute('aria-current', isEnglish ? 'page' : 'false');
+
+  zh.addEventListener('click', () => localStorage.setItem('site-language', 'zh-CN'));
+  en.addEventListener('click', () => localStorage.setItem('site-language', 'en'));
+
+  switcher.append(zh, divider, en);
+  nav.appendChild(switcher);
 })();

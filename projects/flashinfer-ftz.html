@@ -1,5 +1,8 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="通过 TP、Graph、Fusion 与版本的控制变量矩阵，将 vLLM rollout 的 sample_tokens timeout 收敛到 FlashInfer MNNVL fused allreduce + RMSNorm；进一步用位级判断、SASS 对照与两卡 graph replay 完成根因闭环。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/flashinfer-ftz.html"><title>FlashInfer TP2 CUDA Graph Hang：从下游超时到 FTZ / Sentinel 根因 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="通过 TP、Graph、Fusion 与版本的控制变量矩阵，将 vLLM rollout 的 sample_tokens timeout 收敛到 FlashInfer MNNVL fused allreduce + RMSNorm；进一步用位级判断、SASS 对照与两卡 graph replay 完成根因闭环。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/flashinfer-ftz.html"><title>FlashInfer TP2 CUDA Graph Hang：从下游超时到 FTZ / Sentinel 根因 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script>  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/flashinfer-ftz.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/flashinfer-ftz.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/flashinfer-ftz.html">
+</head>
 <body data-page="projects" class="evidence-page">
 <header class="site-header">
   <div class="shell header-inner">

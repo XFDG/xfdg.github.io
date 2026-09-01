@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An ongoing lightweight runtime used to understand quantized data formats, kernel dispatch, attention backends, KV cache, and multi-GPU execution as one system.">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/en/projects/quant-runtime.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/quant-runtime.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/quant-runtime.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/quant-runtime.html">
+  <title>LLMQRT quantized inference runtime — Haoran Feng</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="projects">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../../en/index.html" aria-label="Home">
+      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../../en/index.html">Home</a><a data-nav="projects" href="../../en/projects.html">Work</a><a data-nav="experience" href="../../en/experience.html">Experience</a><a data-nav="writing" href="../../en/writing.html">Writing</a><a data-nav="contact" href="../../en/contact.html">Contact</a><a data-nav="resume" href="../../en/resume.html" class="nav-cta">Résumé</a></nav>
+  </div>
+</header>
+<main>
+
+<section class="compact-page-head">
+  <div class="shell">
+    <div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>LLMQRT quantized inference runtime</span></div>
+    <span class="eyebrow">Quantization · PyTorch Extension · CUDA</span>
+    <div class="page-title-line"><h1>LLMQRT quantized inference runtime</h1><p>An ongoing lightweight runtime used to understand quantized data formats, kernel dispatch, attention backends, KV cache, and multi-GPU execution as one system.</p></div>
+    <div class="metric-strip detail-strip"><div><strong>W4A16</strong><span>AWQ path</span></div><div><strong>W8A8</strong><span>SmoothQuant path</span></div><div><strong>FP8</strong><span>Dynamic / static</span></div><div><strong>H200</strong><span>Validation platform</span></div></div>
+  </div>
+</section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Scope</h2><span>Runtime rather than isolated kernels</span></div><p>The project connects model loading, quantization metadata, custom linear operators, attention backends, KV-cache management, and tensor parallelism.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Kernel paths</h2><span>Prefill and decode are different workloads</span></div><p>Prefill emphasizes matrix-matrix multiplication; decode often becomes GEMV-like and more sensitive to memory traffic, launch overhead, packing, and dequantization layout.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Formats</h2><span>AWQ, INT8, and FP8</span></div><p>Implemented or evaluated W4A16 AWQ, W8A8 SmoothQuant/CUTLASS paths, and dynamic/static FP8, with explicit attention to schema compatibility and scale layout.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Status</h2><span>Work in progress</span></div><p class="boundary-note">The page describes architecture and validated paths. It avoids publishing performance claims that are not yet backed by a stable, comparable end-to-end benchmark matrix.</p></div></section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="button-row"><a class="button primary" href="https://github.com/XFDG" target="_blank" rel="noreferrer">Public source ↗</a><a class="button" href="../projects.html">All projects</a></div></div></section>
+
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../../en/resume.html">Résumé</a></div></div></footer>
+</body>
+</html>

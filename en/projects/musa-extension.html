@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Internship work across TensorFlow operator semantics, graph rewriting, device kernels, stability, and performance observability on a domestic GPU platform.">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/en/projects/musa-extension.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/musa-extension.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/musa-extension.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/musa-extension.html">
+  <title>TensorFlow MUSA Extension — Haoran Feng</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="projects">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../../en/index.html" aria-label="Home">
+      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../../en/index.html">Home</a><a data-nav="projects" href="../../en/projects.html">Work</a><a data-nav="experience" href="../../en/experience.html">Experience</a><a data-nav="writing" href="../../en/writing.html">Writing</a><a data-nav="contact" href="../../en/contact.html">Contact</a><a data-nav="resume" href="../../en/resume.html" class="nav-cta">Résumé</a></nav>
+  </div>
+</header>
+<main>
+
+<section class="compact-page-head">
+  <div class="shell">
+    <div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>TensorFlow MUSA Extension</span></div>
+    <span class="eyebrow">Framework Backend · Heterogeneous Computing</span>
+    <div class="page-title-line"><h1>TensorFlow MUSA Extension</h1><p>Internship work across TensorFlow operator semantics, graph rewriting, device kernels, stability, and performance observability on a domestic GPU platform.</p></div>
+    <div class="metric-strip detail-strip"><div><strong>2026.01–04</strong><span>Internship</span></div><div><strong>11/11</strong><span>GELU fusion</span></div><div><strong>+36.6%</strong><span>Target shape benchmark</span></div><div><strong>21.2→10.7 μs</strong><span>Logical_Or</span></div></div>
+  </div>
+</section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Framework chain</h2><span>More than a kernel</span></div><p>A device extension spans TensorFlow op definitions, placement, kernel registration, graph optimizer passes, runtime memory semantics, backend libraries, and correctness/performance tests.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>GELU fusion</h2><span>From support to actual graph coverage</span></div><p>Integrated the backend GELU implementation, repaired fusion matching in larger graphs, and used real input shapes to verify that all 11 target GELU nodes were fused.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Stability</h2><span>Shape metadata and asynchronous lifetimes</span></div><p>Long-run failures were traced to host/device shape semantics and asynchronous pointer lifetimes rather than simply insufficient device memory.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Observability and hot paths</h2><span>Measure before optimizing</span></div><p>Built lightweight kernel timing/debug tooling and optimized a scalar-broadcast Logical_Or path from 21.2 μs to 10.7 μs.</p><p class="boundary-note">Public MUSA PRs are evidence of internship work, not classified here as independent open-source activity.</p></div></section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="button-row"><a class="button primary" href="https://github.com/MooreThreads/tensorflow_musa_extension" target="_blank" rel="noreferrer">Public source ↗</a><a class="button" href="../projects.html">All projects</a></div></div></section>
+
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../../en/resume.html">Résumé</a></div></div></footer>
+</body>
+</html>

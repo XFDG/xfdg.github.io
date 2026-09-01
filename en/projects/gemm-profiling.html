@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="The main lesson was methodological: define the real workload before searching for a faster kernel.">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/en/projects/gemm-profiling.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/gemm-profiling.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/gemm-profiling.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/gemm-profiling.html">
+  <title>H200 MoE Grouped GEMM profiling and tuning — Haoran Feng</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="projects">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../../en/index.html" aria-label="Home">
+      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../../en/index.html">Home</a><a data-nav="projects" href="../../en/projects.html">Work</a><a data-nav="experience" href="../../en/experience.html">Experience</a><a data-nav="writing" href="../../en/writing.html">Writing</a><a data-nav="contact" href="../../en/contact.html">Contact</a><a data-nav="resume" href="../../en/resume.html" class="nav-cta">Résumé</a></nav>
+  </div>
+</header>
+<main>
+
+<section class="compact-page-head">
+  <div class="shell">
+    <div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>H200 MoE Grouped GEMM profiling and tuning</span></div>
+    <span class="eyebrow">GPU Performance · MoE · SM90</span>
+    <div class="page-title-line"><h1>H200 MoE Grouped GEMM profiling and tuning</h1><p>The main lesson was methodological: define the real workload before searching for a faster kernel.</p></div>
+    <div class="metric-strip detail-strip"><div><strong>4–6×</strong><span>Workload overcount corrected</span></div><div><strong>+5.3%</strong><span>Target shape</span></div><div><strong>+1.84%</strong><span>Full matrix aggregate</span></div><div><strong>≈66.5%</strong><span>Pure GEMM MFU</span></div></div>
+  </div>
+</section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Workload definition</h2><span>Expanded rows are not compact rows</span></div><p>Mixing <code>T × top-k</code> expanded rows with DeepEP compact rows overstated work by roughly 4–6×. The corrected compact-row count changed both the benchmark distribution and the optimization target.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Replay</h2><span>Production shapes, local control</span></div><p>Steady-state forward ranges were collected, filtered, and replayed locally. This preserved representative shapes while making kernel configuration, warmup, and repeated A/B measurement controllable.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Tuning</h2><span>Configuration-level search</span></div><p>Candidate SM90 configurations varied tile shape, cluster shape, swizzle, and expert distribution. A selected target shape improved by about 5.3%, while the full shape/distribution matrix improved by about 1.84% in aggregate.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Claim boundary</h2><span>Microkernel is not end-to-end</span></div><p class="boundary-note">Pure GEMM MFU and local latency do not equal end-to-end MoE or model throughput. Dispatch, communication, imbalance, launch overhead, and synchronization remain outside that metric.</p></div></section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="button-row"><a class="button primary" href="https://github.com/deepseek-ai/DeepGEMM" target="_blank" rel="noreferrer">Public source ↗</a><a class="button" href="../projects.html">All projects</a></div></div></section>
+
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../../en/resume.html">Résumé</a></div></div></footer>
+</body>
+</html>

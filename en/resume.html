@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Public English résumé of Haoran Feng, focused on AI infrastructure, LLM systems, and GPU performance.">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/en/resume.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/resume.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/resume.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/resume.html">
+  <title>Résumé — Haoran Feng</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="resume">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../en/index.html" aria-label="Home">
+      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../en/index.html">Home</a><a data-nav="projects" href="../en/projects.html">Work</a><a data-nav="experience" href="../en/experience.html">Experience</a><a data-nav="writing" href="../en/writing.html">Writing</a><a data-nav="contact" href="../en/contact.html">Contact</a><a data-nav="resume" href="../en/resume.html" class="nav-cta">Résumé</a></nav>
+  </div>
+</header>
+<main>
+
+<section class="compact-page-head print-hidden">
+  <div class="shell">
+    <span class="eyebrow">Public résumé</span>
+    <div class="page-title-line"><h1>Résumé</h1><p>A public, privacy-safe version. Use the print command to save it as PDF.</p></div>
+    <div class="button-row"><button class="button primary" onclick="window.print()" type="button">Print / Save PDF</button><a class="button" href="projects.html">Project evidence</a></div>
+  </div>
+</section>
+<section class="section compact section-line">
+  <div class="narrow">
+    <article class="resume-sheet">
+      <header class="resume-header">
+        <div><h1>Haoran Feng <span style="color:var(--muted);font-weight:500">冯浩然</span></h1><p style="margin:0">AI Infrastructure · LLM Systems · GPU Performance</p></div>
+        <div class="resume-contact"><a href="mailto:225010160@link.cuhk.edu.cn">225010160@link.cuhk.edu.cn</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">github.com/XFDG</a><span>Shenzhen / Beijing · Expected 2027</span></div>
+      </header>
+      <section class="resume-section"><h2>Profile</h2><p style="font-size:.88rem;margin:0">M.Sc. candidate in Integrated Circuits and Systems at CUHK-Shenzhen. Engineering experience spans large C/C++ systems, a TensorFlow backend for a domestic GPU platform, quantized LLM runtimes, and MoE post-training/inference infrastructure on H200 clusters. Interested in training–inference consistency, GPU kernels, distributed inference, and reproducible performance engineering.</p></section>
+      <section class="resume-section"><h2>Education</h2>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>The Chinese University of Hong Kong, Shenzhen</h3><span class="sub">M.Sc. in Integrated Circuits and Systems</span></div><span class="date">2025.09 — 2027.06 expected</span></div></div>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>Shandong University</h3><span class="sub">B.Eng. in Electronic Science and Technology · Minor in Computer Science</span></div><span class="date">2021.09 — 2025.06</span></div><ul><li>Academic scholarship (top 20%) and an innovation-oriented merit scholarship.</li></ul></div>
+      </section>
+      <section class="resume-section"><h2>Research</h2>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>From Structure to Preference: Token Weighting for Chain-of-Thought Distillation in Large Language Models</h3><span class="sub">Shankui Han, Zhaoyu Li, Weiwen Yuan, Yuyuan Yang, Haoran Feng, Jinke Ren</span></div><span class="date">AAAI 2027 · Under review</span></div><ul><li>Three-stage CoT distillation with structure recovery, intervention-based token weighting, and preference optimization. <a href="https://openreview.net/forum?id=6eDZdA6IGW" target="_blank" rel="noreferrer">OpenReview ↗</a></li></ul></div>
+      </section>
+      <section class="resume-section"><h2>Experience</h2>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>LLM Post-training & Inference Infrastructure</h3><span class="sub">Company work · anonymized public summary</span></div><span class="date">2026.04 — Present</span></div><ul><li>Debugged a TP=2 FULL CUDA Graph rollout hang to FTZ/sentinel behavior in a fused collective path; completed minimal reproduction, bit-level patching, SASS verification, and model-level replay regression.</li><li>Built MoE route capture and Router Replay across rollout and training; in an 8×H200 controlled run, route mismatch fell from approximately 17–19% to 0, with large reductions in probability-drift metrics.</li><li>Maintained GPU-resident recent-token state for asynchronous decode and validated mixed batches, recovery, slot reuse, and TP1/TP2/TP4 correctness and throughput.</li></ul></div>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>Moore Threads · Operator & Compiler Optimization Intern</h3><span class="sub">TensorFlow MUSA Extension</span></div><span class="date">2026.01 — 2026.04</span></div><ul><li>Integrated muDNN GELU, repaired graph-fusion coverage, and built real-shape benchmarks; achieved 11/11 GELU fusion and approximately 36.6% improvement in the targeted shape benchmark.</li><li>Resolved long-run instability caused by host/device shape semantics and asynchronous metadata lifetimes.</li><li>Built kernel observability tooling and optimized a scalar-broadcast Logical_Or hot path from 21.2 μs to 10.7 μs.</li></ul></div>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>Huawei · General Software Engineering Intern</h3><span class="sub">Large C/C++ systems and static-analysis tooling</span></div><span class="date">2024.08 — 2024.12</span></div><ul><li>Improved static-analysis rules and built Python automation for rule generation, validation, and CI workflows.</li></ul></div>
+      </section>
+      <section class="resume-section"><h2>Open Source Contributions</h2>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>Mooncake Contributor</h3><span class="sub">Distributed KV Cache · RDMA · Storage</span></div><span class="date">2026.08</span></div><ul><li>Two merged reliability fixes: restoring fork state after RDMA memory-region deregistration and rebuilding stale endpoints/QPs after port recovery.</li></ul></div>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>Mirage Contributor</h3><span class="sub">Qwen3 inference correctness</span></div><span class="date">2026.08</span></div><ul><li>Merged <a href="https://github.com/mirage-project/mirage/pull/755" target="_blank" rel="noreferrer">PR #755</a>, preventing padded lm_head rows from producing out-of-range token IDs during Argmax.</li></ul></div>
+      </section>
+      <section class="resume-section"><h2>Selected Projects</h2>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>LLMQRT Quantized Inference Runtime</h3><span class="sub">PyTorch Extension · CUTLASS · AWQ / INT8 / FP8</span></div><span class="date">Ongoing</span></div><ul><li>Lightweight runtime work across quantized linear layers, decode GEMV, attention backends, KV cache, and tensor parallelism.</li></ul></div>
+        <div class="resume-entry"><div class="resume-entry-head"><div><h3>Semi-supervised Image Classification</h3><span class="sub">ResNet-18 · pseudo-labeling · augmentation</span></div><span class="date">2024</span></div><ul><li>Improved Top-1 accuracy from 51.8% to 85.1% and placed 7th in a <a href="https://www.kaggle.com/competitions/dl2023autumexp2" target="_blank" rel="noreferrer">Kaggle competition</a>.</li></ul></div>
+      </section>
+      <section class="resume-section"><h2>Technical Stack</h2><p style="font-size:.84rem;margin:0"><strong>Systems:</strong> veRL, Megatron-LM, vLLM, SGLang, TensorFlow, PyTorch extensions · <strong>GPU:</strong> CUDA, CUTLASS, CuTe, DeepGEMM, Nsight Systems/Compute, MUSA · <strong>Engineering:</strong> C++, Python, Linux, Docker, Git, benchmarking and ablation.</p></section>
+    </article>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../en/resume.html">Résumé</a></div></div></footer>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Selected AI infrastructure, GPU performance, distributed systems, and open-source work by Haoran Feng.">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/en/projects.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects.html">
+  <title>Projects — Haoran Feng</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="projects">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../en/index.html" aria-label="Home">
+      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../en/index.html">Home</a><a data-nav="projects" href="../en/projects.html">Work</a><a data-nav="experience" href="../en/experience.html">Experience</a><a data-nav="writing" href="../en/writing.html">Writing</a><a data-nav="contact" href="../en/contact.html">Contact</a><a data-nav="resume" href="../en/resume.html" class="nav-cta">Résumé</a></nav>
+  </div>
+</header>
+<main>
+
+<section class="compact-page-head">
+  <div class="shell">
+    <span class="eyebrow">Projects / Public evidence</span>
+    <div class="page-title-line"><h1>Selected engineering work</h1><p>Organized by problem, method, evidence, and claim boundaries—not by tool names.</p></div>
+  </div>
+</section>
+<section class="dense-section section-line">
+  <div class="shell">
+    <div class="filter-bar compact-filters"><button class="filter-button active" data-filter="all" type="button">ALL</button><button class="filter-button" data-filter="opensource" type="button">OPEN SOURCE</button><button class="filter-button" data-filter="systems" type="button">SYSTEMS</button><button class="filter-button" data-filter="rl" type="button">RL INFRA</button><button class="filter-button" data-filter="inference" type="button">INFERENCE</button><button class="filter-button" data-filter="gpu" type="button">GPU PERF</button><button class="filter-button" data-filter="heterogeneous" type="button">HETEROGENEOUS</button><button class="filter-button" data-filter="ml" type="button">ML PIPELINE</button></div>
+    <div class="work-list project-index-list">
+      <a class="work-row filter-item" data-category="opensource systems inference" href="projects/mooncake-contributions.html"><span class="work-index">01</span><span class="work-main"><strong>Mooncake: RDMA and storage reliability</strong><small>Upstream fixes for memory-region lifecycle and endpoint recovery in a distributed KV-cache system.</small></span><span class="work-evidence">2 merged PRs</span><span class="work-badge">OPEN SOURCE</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="opensource systems inference" href="projects/mirage-contribution.html"><span class="work-index">02</span><span class="work-main"><strong>Mirage: out-of-range tokens caused by Argmax padding</strong><small>Fixed padded lm_head rows winning Argmax when every valid logit is negative.</small></span><span class="work-evidence">PR #755 merged</span><span class="work-badge">OPEN SOURCE</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="systems inference gpu" href="projects/flashinfer-ftz.html"><span class="work-index">03</span><span class="work-main"><strong>FlashInfer CUDA Graph hang: FTZ and sentinel semantics</strong><small>Traced a downstream rollout timeout to a fused collective kernel and validated a bit-exact fix.</small></span><span class="work-evidence">SASS predicate 8→0</span><span class="work-badge">GPU DEBUG</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="rl systems inference" href="projects/router-replay.html"><span class="work-index">04</span><span class="work-main"><strong>R3 Router Replay for MoE training–rollout consistency</strong><small>Connected route capture, observe/replay, response masks, and probability-drift metrics.</small></span><span class="work-evidence">mismatch 17–19%→0</span><span class="work-badge">RL INFRA</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="systems inference gpu" href="projects/oe-async.html"><span class="work-index">05</span><span class="work-main"><strong>OE Async: GPU token history and fused hashing</strong><small>Removed CPU round trips from asynchronous decode while preserving state correctness across requests.</small></span><span class="work-evidence">TP1 +5.0%</span><span class="work-badge">ASYNC OP</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="gpu inference" href="projects/gemm-profiling.html"><span class="work-index">06</span><span class="work-main"><strong>H200 MoE Grouped GEMM profiling and tuning</strong><small>Corrected the expanded/compact workload definition before replaying production shapes and tuning SM90 kernels.</small></span><span class="work-evidence">workload error 4–6×</span><span class="work-badge">GPU PERF</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="systems inference gpu" href="projects/deepgemm-offline.html"><span class="work-index">07</span><span class="work-main"><strong>DeepGEMM offline cubin and wheel delivery</strong><small>Turned runtime JIT artifacts into a verifiable offline bundle for isolated inference environments.</small></span><span class="work-evidence">109→359 kernels</span><span class="work-badge">DELIVERY</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="heterogeneous gpu systems" href="projects/musa-extension.html"><span class="work-index">08</span><span class="work-main"><strong>TensorFlow MUSA Extension</strong><small>Framework-backend work spanning operators, graph fusion, host/device semantics, stability, and profiling tools.</small></span><span class="work-evidence">11/11 GELU fused</span><span class="work-badge">FRAMEWORK</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="systems inference gpu" href="projects/quant-runtime.html"><span class="work-index">09</span><span class="work-main"><strong>LLMQRT quantized inference runtime</strong><small>A lightweight runtime covering AWQ W4A16, W8A8, FP8, attention backends, KV cache, and tensor parallelism.</small></span><span class="work-evidence">AWQ · INT8 · FP8</span><span class="work-badge">RUNTIME</span><span class="work-arrow">↗</span></a><a class="work-row filter-item" data-category="ml systems" href="projects/drone-detection-pipeline.html"><span class="work-index">10</span><span class="work-main"><strong>Drone detection experiment pipeline</strong><small>Unified three datasets and built a recoverable, multi-GPU, multi-model evaluation workflow.</small></span><span class="work-evidence">171,568 samples</span><span class="work-badge">ML SYSTEMS</span><span class="work-arrow">↗</span></a>
+      <a class="work-row filter-item" data-category="ml" href="https://www.kaggle.com/competitions/dl2023autumexp2" target="_blank" rel="noreferrer">
+        <span class="work-index">11</span>
+        <span class="work-main"><strong>Semi-supervised image classification with ResNet-18</strong><small>Used pseudo-labeling and mixed augmentation to improve classification under limited labels and class imbalance.</small></span>
+        <span class="work-evidence">Top-1 51.8%→85.1% · 7th</span>
+        <span class="work-badge">EARLIER WORK</span>
+        <span class="work-arrow">↗</span>
+      </a>
+    </div>
+    <p class="index-note">Company work is presented through anonymized methods and aggregated results. Open-source status follows the linked upstream pull requests.</p>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../en/resume.html">Résumé</a></div></div></footer>
+</body>
+</html>

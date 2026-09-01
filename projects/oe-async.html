@@ -1,5 +1,8 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="把 recent-token history 与 OE 输入构造留在 GPU 热路径，减少 GPU→CPU 等待和再次 H→D 回传；同时修复 mixed batch、请求恢复、slot reuse 与 reorder 下的跨 step 状态更新。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/oe-async.html"><title>OE Async：GPU Token History、Triton Fused Hash 与多卡正确性 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="把 recent-token history 与 OE 输入构造留在 GPU 热路径，减少 GPU→CPU 等待和再次 H→D 回传；同时修复 mixed batch、请求恢复、slot reuse 与 reorder 下的跨 step 状态更新。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/oe-async.html"><title>OE Async：GPU Token History、Triton Fused Hash 与多卡正确性 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script>  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/oe-async.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/oe-async.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/oe-async.html">
+</head>
 <body data-page="projects" class="evidence-page">
 <header class="site-header">
   <div class="shell header-inner">

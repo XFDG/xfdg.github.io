@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Capturing rollout routes and replaying them during training to separate routing divergence from the rest of the post-training stack.">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/en/projects/router-replay.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/router-replay.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/router-replay.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/router-replay.html">
+  <title>R3 Router Replay for MoE training–rollout consistency — Haoran Feng</title>
+  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="../../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="projects">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../../en/index.html" aria-label="Home">
+      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../../en/index.html">Home</a><a data-nav="projects" href="../../en/projects.html">Work</a><a data-nav="experience" href="../../en/experience.html">Experience</a><a data-nav="writing" href="../../en/writing.html">Writing</a><a data-nav="contact" href="../../en/contact.html">Contact</a><a data-nav="resume" href="../../en/resume.html" class="nav-cta">Résumé</a></nav>
+  </div>
+</header>
+<main>
+
+<section class="compact-page-head">
+  <div class="shell">
+    <div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>R3 Router Replay for MoE training–rollout consistency</span></div>
+    <span class="eyebrow">RL Infrastructure · MoE · Training–Inference Consistency</span>
+    <div class="page-title-line"><h1>R3 Router Replay for MoE training–rollout consistency</h1><p>Capturing rollout routes and replaying them during training to separate routing divergence from the rest of the post-training stack.</p></div>
+    <div class="metric-strip detail-strip"><div><strong>17–19%→0</strong><span>Route mismatch</span></div><div><strong>36–145×</strong><span>Lower f_tau_2</span></div><div><strong>4–7×</strong><span>Lower KL</span></div><div><strong>8×H200</strong><span>Controlled run</span></div></div>
+  </div>
+</section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Problem</h2><span>The same model can route differently</span></div><p>Rollout and training execute through different frameworks, kernels, precision paths, and graph modes. Small numerical differences around router boundaries can select different experts and amplify downstream probability drift.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Data contract</h2><span>Token × layer × top-k</span></div><p>The pipeline records routed-expert IDs on the rollout side, aligns them with response masks, observes the natural training route, and optionally replaces it with the recorded route during replay.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Experiment</h2><span>Baseline / record / replay</span></div><p>A controlled comparison separated ordinary execution, route recording, and route replay. Replay reduced route mismatch to zero and substantially reduced multiple log-probability drift metrics.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Claim boundary</h2><span>Consistency is not final quality</span></div><p class="boundary-note">The evidence supports a stronger training–rollout consistency claim. It does not by itself prove higher reward, better downstream accuracy, or improved final convergence.</p></div></section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="button-row"><a class="button primary" href="https://github.com/volcengine/verl" target="_blank" rel="noreferrer">Public source ↗</a><a class="button" href="../projects.html">All projects</a></div></div></section>
+
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../../en/resume.html">Résumé</a></div></div></footer>
+</body>
+</html>

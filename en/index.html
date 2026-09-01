@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Haoran Feng&#x27;s portfolio: LLM systems, GPU performance, research, and upstream open-source contributions.">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/en/">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/">
+  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/">
+  <title>AI Infrastructure — Haoran Feng</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../script.js" defer></script>
+</head>
+<body class="compact-site editorial-site" data-page="home">
+<header class="site-header">
+  <div class="shell header-inner">
+    <a class="brand" href="../en/index.html" aria-label="Home">
+      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
+    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../en/index.html">Home</a><a data-nav="projects" href="../en/projects.html">Work</a><a data-nav="experience" href="../en/experience.html">Experience</a><a data-nav="writing" href="../en/writing.html">Writing</a><a data-nav="contact" href="../en/contact.html">Contact</a><a data-nav="resume" href="../en/resume.html" class="nav-cta">Résumé</a></nav>
+  </div>
+</header>
+<main>
+
+<section class="editorial-hero">
+  <div class="shell">
+    <div class="editorial-hero-grid">
+      <div class="hero-primary">
+        <span class="eyebrow">AI Infrastructure / GPU Systems / Open Source</span>
+        <h1>Haoran Feng<span>冯浩然</span></h1>
+      </div>
+      <div class="hero-secondary">
+        <p class="hero-statement">M.Sc. candidate at CUHK-Shenzhen, focused on LLM systems and GPU performance engineering.</p>
+        <dl class="hero-facts">
+          <div><dt>Current</dt><dd>LLM post-training and inference infrastructure</dd></div>
+          <div><dt>Focus</dt><dd>CUDA · MoE · RDMA · distributed inference</dd></div>
+          <div><dt>Research</dt><dd>AAAI 2027 submission on CoT distillation</dd></div>
+          <div><dt>Open source</dt><dd>Mooncake · Mirage</dd></div>
+        </dl>
+        <div class="quick-links">
+          <a href="mailto:225010160@link.cuhk.edu.cn">Email</a>
+          <a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub ↗</a>
+          <a href="resume.html">Résumé</a>
+          <a href="research.html">Research</a>
+        </div>
+      </div>
+    </div>
+    <div class="metric-strip">
+      <div><strong>3</strong><span>Merged upstream PRs</span></div>
+      <div><strong>8×H200</strong><span>Primary MoE-RL environment</span></div>
+      <div><strong>128 GPUs</strong><span>Largest validation scale</span></div>
+      <div><strong>2027</strong><span>Expected graduation</span></div>
+    </div>
+  </div>
+</section>
+<section class="dense-section section-line">
+  <div class="shell">
+    <div class="dense-heading"><h2>Selected work</h2><a href="projects.html">All work →</a></div>
+    <div class="work-list"><a class="work-row" href="projects/mooncake-contributions.html"><span class="work-index">01</span><span class="work-main"><strong>Mooncake: RDMA and storage reliability</strong><small>Upstream fixes for memory-region lifecycle and endpoint recovery in a distributed KV-cache system.</small></span><span class="work-evidence">2 merged PRs</span><span class="work-badge">OPEN SOURCE</span><span class="work-arrow">↗</span></a><a class="work-row" href="projects/mirage-contribution.html"><span class="work-index">02</span><span class="work-main"><strong>Mirage: out-of-range tokens caused by Argmax padding</strong><small>Fixed padded lm_head rows winning Argmax when every valid logit is negative.</small></span><span class="work-evidence">PR #755 merged</span><span class="work-badge">OPEN SOURCE</span><span class="work-arrow">↗</span></a><a class="work-row" href="projects/flashinfer-ftz.html"><span class="work-index">03</span><span class="work-main"><strong>FlashInfer CUDA Graph hang: FTZ and sentinel semantics</strong><small>Traced a downstream rollout timeout to a fused collective kernel and validated a bit-exact fix.</small></span><span class="work-evidence">SASS predicate 8→0</span><span class="work-badge">GPU DEBUG</span><span class="work-arrow">↗</span></a><a class="work-row" href="projects/router-replay.html"><span class="work-index">04</span><span class="work-main"><strong>R3 Router Replay for MoE training–rollout consistency</strong><small>Connected route capture, observe/replay, response masks, and probability-drift metrics.</small></span><span class="work-evidence">mismatch 17–19%→0</span><span class="work-badge">RL INFRA</span><span class="work-arrow">↗</span></a><a class="work-row" href="projects/oe-async.html"><span class="work-index">05</span><span class="work-main"><strong>OE Async: GPU token history and fused hashing</strong><small>Removed CPU round trips from asynchronous decode while preserving state correctness across requests.</small></span><span class="work-evidence">TP1 +5.0%</span><span class="work-badge">ASYNC OP</span><span class="work-arrow">↗</span></a><a class="work-row" href="projects/gemm-profiling.html"><span class="work-index">06</span><span class="work-main"><strong>H200 MoE Grouped GEMM profiling and tuning</strong><small>Corrected the expanded/compact workload definition before replaying production shapes and tuning SM90 kernels.</small></span><span class="work-evidence">workload error 4–6×</span><span class="work-badge">GPU PERF</span><span class="work-arrow">↗</span></a><a class="work-row" href="projects/deepgemm-offline.html"><span class="work-index">07</span><span class="work-main"><strong>DeepGEMM offline cubin and wheel delivery</strong><small>Turned runtime JIT artifacts into a verifiable offline bundle for isolated inference environments.</small></span><span class="work-evidence">109→359 kernels</span><span class="work-badge">DELIVERY</span><span class="work-arrow">↗</span></a><a class="work-row" href="projects/musa-extension.html"><span class="work-index">08</span><span class="work-main"><strong>TensorFlow MUSA Extension</strong><small>Framework-backend work spanning operators, graph fusion, host/device semantics, stability, and profiling tools.</small></span><span class="work-evidence">11/11 GELU fused</span><span class="work-badge">FRAMEWORK</span><span class="work-arrow">↗</span></a></div>
+  </div>
+</section>
+<section class="dense-section section-line">
+  <div class="shell">
+    <div class="dense-heading"><h2>Research</h2><span>AAAI 2027 · Under review</span></div>
+    <a class="activity-row" href="research.html">
+      <div class="activity-title">
+        <strong>From Structure to Preference</strong>
+        <span>Token-weighted chain-of-thought distillation</span>
+      </div>
+      <p>A three-stage framework combining rationale structure recovery, intervention-based token weighting, and preference optimization.</p>
+      <div class="activity-meta"><span>Revised manuscript</span><span>OpenReview ↗</span></div>
+    </a>
+  </div>
+</section>
+<section class="dense-section section-line">
+  <div class="shell">
+    <div class="dense-heading"><h2>Education</h2><a href="experience.html">Details →</a></div>
+    <div class="timeline-compact education-compact">
+      <div><time>2025 — 2027</time><strong>The Chinese University of Hong Kong, Shenzhen</strong><span>M.Sc. in Integrated Circuits and Systems</span></div>
+      <div><time>2021 — 2025</time><strong>Shandong University</strong><span>B.Eng. in Electronic Science and Technology · Minor in Computer Science</span></div>
+      <div><time>Undergraduate</time><strong>Early technical work</strong><span>Academic scholarship; semi-supervised ResNet classification, Top-1 51.8% → 85.1%, 7th in a Kaggle competition.</span></div>
+    </div>
+  </div>
+</section>
+<section class="dense-section section-line">
+  <div class="shell two-column-dense">
+    <div>
+      <div class="dense-heading"><h2>Experience</h2><a href="experience.html">Details →</a></div>
+      <div class="timeline-compact">
+        <div><time>2026.04 — Present</time><strong>LLM systems and high-performance computing</strong><span>MoE-RL · CUDA Graph · asynchronous decode · H200 kernels</span></div>
+        <div><time>2026.01 — 2026.04</time><strong>Moore Threads · TensorFlow MUSA Extension</strong><span>Framework backend · graph fusion · kernel debugging</span></div>
+        <div><time>2024.08 — 2024.12</time><strong>Huawei · General software engineering</strong><span>Large C/C++ systems · static analysis · automation</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="dense-heading"><h2>Open source</h2><span>Independent upstream contributions</span></div>
+      <div class="os-list">
+        <a href="projects/mooncake-contributions.html"><strong>Mooncake</strong><span>Two merged reliability fixes across RDMA lifecycle and fault recovery</span><b>↗</b></a>
+        <a href="projects/mirage-contribution.html"><strong>Mirage</strong><span>Merged Qwen3 inference correctness fix for padded Argmax rows</span><b>↗</b></a>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="dense-section section-line">
+  <div class="shell">
+    <div class="dense-heading"><h2>Writing & profiles</h2><a href="writing.html">Writing index →</a></div>
+    <div class="profile-links">
+      <a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer"><strong>CSDN</strong><span>Engineering notes, benchmarks, and debugging reports</span></a>
+      <a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer"><strong>Zhihu</strong><span>System explanations, technical comparisons, and commentary</span></a>
+      <a href="https://github.com/XFDG" target="_blank" rel="noreferrer"><strong>GitHub</strong><span>Code, pull requests, and public engineering evidence</span></a>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../en/resume.html">Résumé</a></div></div></footer>
+</body>
+</html>

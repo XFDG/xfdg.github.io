@@ -1,5 +1,8 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="先分离 T、T×top-k 与 DeepEP compact rows，再对稳态 NVTX range、线上 shape 回放和 Quack/CUTLASS 3.x 候选配置进行同口径分析，避免用错误工作量解释 Kernel 性能。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/gemm-profiling.html"><title>H200 MoE Grouped GEMM：统计口径纠偏、线上回放与 SM90 调优 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="先分离 T、T×top-k 与 DeepEP compact rows，再对稳态 NVTX range、线上 shape 回放和 Quack/CUTLASS 3.x 候选配置进行同口径分析，避免用错误工作量解释 Kernel 性能。"><meta name="theme-color" content="#07090d"><link rel="canonical" href="https://xfdg.github.io/projects/gemm-profiling.html"><title>H200 MoE Grouped GEMM：统计口径纠偏、线上回放与 SM90 调优 — Haoran Feng</title><link rel="icon" href="../assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../styles.css"><script src="../script.js" defer></script>  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/gemm-profiling.html">
+  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/gemm-profiling.html">
+  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/gemm-profiling.html">
+</head>
 <body data-page="projects" class="evidence-page">
 <header class="site-header">
   <div class="shell header-inner">
