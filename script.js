@@ -104,7 +104,6 @@
   });
 })();
 
-
 // bilingual-language-switch
 (() => {
   const path = window.location.pathname || '/';
@@ -132,7 +131,7 @@
   zh.textContent = '中';
   zh.lang = 'zh-CN';
   zh.classList.toggle('is-active', !isEnglish);
-  zh.setAttribute('aria-current', !isEnglish ? 'page' : 'false');
+  if (!isEnglish) zh.setAttribute('aria-current', 'page');
 
   const divider = document.createElement('span');
   divider.className = 'language-divider';
@@ -143,10 +142,20 @@
   en.textContent = 'EN';
   en.lang = 'en';
   en.classList.toggle('is-active', isEnglish);
-  en.setAttribute('aria-current', isEnglish ? 'page' : 'false');
+  if (isEnglish) en.setAttribute('aria-current', 'page');
 
-  zh.addEventListener('click', () => localStorage.setItem('site-language', 'zh-CN'));
-  en.addEventListener('click', () => localStorage.setItem('site-language', 'en'));
+  const closeMenu = () => {
+    document.querySelector('.menu-toggle')?.setAttribute('aria-expanded', 'false');
+    nav.classList.remove('open');
+  };
+  zh.addEventListener('click', () => {
+    localStorage.setItem('site-language', 'zh-CN');
+    closeMenu();
+  });
+  en.addEventListener('click', () => {
+    localStorage.setItem('site-language', 'en');
+    closeMenu();
+  });
 
   switcher.append(zh, divider, en);
   nav.appendChild(switcher);
