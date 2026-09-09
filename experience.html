@@ -98,7 +98,7 @@
 <div><h3>LLM Post-training &amp; Inference Infrastructure</h3><span class="timeline-company">企业 AI Infra / 大模型系统与高性能计算 · 脱敏展示</span></div>
 <span class="timeline-date">2026.04 — 至今</span>
 </div>
-<p>围绕 H200 上的大模型训练推理链路；现已具备 Blackwell 实机环境，用于后续跨代验证。完成 CUDA Graph 稳定性根因定位、MoE Router Replay、异步 GPU 状态算子、Grouped GEMM workload 重建与离线推理交付。</p>
+<p>围绕 H200 上的大模型训练推理链路，完成 CUDA Graph 稳定性根因定位、MoE Router Replay、异步 GPU 状态算子、Grouped GEMM workload 重建与离线推理交付。现已具备 Blackwell 实机环境，用于后续跨代验证。</p>
 <ul class="check-list" style="margin-top:18px"><li>FlashInfer CUDA Graph｜将 TP=2 FULL graph rollout hang 从下游 timeout 收敛到 FTZ 对 Lamport sentinel 的误判，回移位级修复并完成两卡最小复现、SASS 与模型级 graph replay 回归。</li><li>R3 Router Replay｜实现 [token, MoE-layer, top-k] route 采集、observe/replay 和 response-mask 指标闭环；8×H200 20-step 对照中 route mismatch 由约 17%-19% 降至 0，f_tau_2 降低约 36-145×、KL 降低约 4-7×。</li><li>OE Async｜在 GPU 侧维护 recent-token history 并以 Triton fused-hash 构造输入；TP1 严格矩阵较同步路径提升约 5.0%，TP2/TP4 安全路径 0 mismatch，decode 吞吐约 +4.6%/+3.0%。</li><li>H200 Grouped GEMM｜纠正 T×top-k 与 compact rows 混用造成的 4×-6× 误判；以 1,024 条 range 构造回放，扩展 SM90 候选后目标 shape 约 +5.3%，完整矩阵聚合约 +1.84%。</li></ul>
 <div class="tag-list"><span class="tag">veRL</span><span class="tag">Megatron-LM</span><span class="tag">vLLM</span><span class="tag">SGLang</span><span class="tag">H200</span><span class="tag">MoE</span><span class="tag">CUDA Graph</span><span class="tag">Nsight</span></div>
 <div class="button-row" style="margin-top:20px"><a class="button small" href="projects/flashinfer-ftz.html">FlashInfer 根因</a><a class="button small" href="projects/router-replay.html">Router Replay</a><a class="button small" href="projects/oe-async.html">OE Async</a><a class="button small" href="projects/gemm-profiling.html">GEMM Profiling</a></div></div>
