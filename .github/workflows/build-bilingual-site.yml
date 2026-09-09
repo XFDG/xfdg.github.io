@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - tools/build_bilingual.py
+      - tools/sync_profile_status.py
       - .github/workflows/build-bilingual-site.yml
   workflow_dispatch:
 
@@ -20,8 +21,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate English mirror and language switch
-        run: python tools/build_bilingual.py
+      - name: Generate bilingual pages
+        run: |
+          python tools/build_bilingual.py
+          python tools/sync_profile_status.py
 
       - name: Commit generated bilingual site
         run: |
@@ -31,7 +34,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No generated changes.'
           else
-            git commit -m 'Add complete Chinese-English site switch'
+            git commit -m 'Refresh OSS status and Blackwell access'
             git push origin HEAD:main
           fi
 
@@ -39,5 +42,3 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
-
-# Updated to trigger the first bilingual build.
