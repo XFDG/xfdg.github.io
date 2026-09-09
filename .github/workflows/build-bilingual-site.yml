@@ -25,6 +25,15 @@ jobs:
         run: |
           python tools/build_bilingual.py
           python tools/sync_profile_status.py
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('experience.html')
+          text = p.read_text(encoding='utf-8')
+          old = '<p>围绕 H200 上的大模型训练推理链路；现已具备 Blackwell 实机环境，用于后续跨代验证。完成 CUDA Graph 稳定性根因定位、MoE Router Replay、异步 GPU 状态算子、Grouped GEMM workload 重建与离线推理交付。</p>'
+          new = '<p>围绕 H200 上的大模型训练推理链路，完成 CUDA Graph 稳定性根因定位、MoE Router Replay、异步 GPU 状态算子、Grouped GEMM workload 重建与离线推理交付。现已具备 Blackwell 实机环境，用于后续跨代验证。</p>'
+          text = text.replace(old, new)
+          p.write_text(text, encoding='utf-8')
+          PY
 
       - name: Commit generated bilingual site
         run: |
