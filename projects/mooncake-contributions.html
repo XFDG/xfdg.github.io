@@ -1,115 +1,30 @@
 <!DOCTYPE html>
-
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<meta content="冯浩然向 Mooncake 分布式 KV Cache 项目提交的 RDMA 与 Store 稳定性修复。" name="description"/>
-<meta content="#0b0d10" name="theme-color"/>
-<link href="https://xfdg.github.io/projects/mooncake-contributions.html" rel="canonical"/>
-<title>Mooncake 开源贡献 — Haoran Feng</title>
-<link href="../assets/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="../styles.css" rel="stylesheet"/>
-<script defer="" src="../script.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Haoran Feng 在 Mooncake 分布式 KV Cache 项目中的公开上游贡献：RDMA、Store durability 与 offloading correctness。">
+  <meta name="theme-color" content="#f4f2ed">
+  <link rel="canonical" href="https://xfdg.github.io/projects/mooncake-contributions.html">
   <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/mooncake-contributions.html">
   <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/mooncake-contributions.html">
   <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/mooncake-contributions.html">
+  <title>Mooncake 开源贡献 — Haoran Feng</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../script.js" defer></script>
 </head>
-<body class="compact-site" data-page="projects">
-<header class="site-header compact-header">
-<div class="shell header-inner">
-<a aria-label="返回首页" class="brand" href="../index.html">
-<span class="brand-mark">HF</span>
-<span class="brand-copy">Haoran Feng <small>AI Infra</small></span>
-</a>
-<button aria-expanded="false" aria-label="打开导航" class="menu-toggle" type="button"><span></span></button>
-<nav aria-label="主导航" class="site-nav">
-<a data-nav="home" href="../index.html">首页</a>
-<a data-nav="projects" href="../projects.html">项目</a>
-<a data-nav="experience" href="../experience.html">经历</a>
-<a data-nav="writing" href="../writing.html">文章</a>
-<a data-nav="contact" href="../contact.html">联系</a>
-<a class="nav-cta" data-nav="resume" href="../resume.html">简历</a>
-</nav>
-</div>
-</header>
+<body class="compact-site editorial-site" data-page="projects">
+<header class="site-header"><div class="shell header-inner"><a class="brand" href="../index.html"><span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span></a><button class="menu-toggle" type="button" aria-label="打开导航" aria-expanded="false"><span></span></button><nav class="site-nav" aria-label="主导航"><a href="../index.html" data-nav="home">首页</a><a href="../projects.html" data-nav="projects">项目</a><a href="../experience.html" data-nav="experience">经历</a><a href="../writing.html" data-nav="writing">文章</a><a href="../contact.html" data-nav="contact">联系</a><a class="nav-cta" href="../resume.html" data-nav="resume">简历</a></nav></div></header>
 <main>
-<section class="compact-page-head">
-<div class="shell">
-<div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>Mooncake</span></div>
-<span class="eyebrow">Open Source · Distributed KV Cache · RDMA</span>
-<div class="page-title-line"><h1>Mooncake 开源贡献</h1><p>围绕 Mooncake Store 与 Transfer Engine 的稳定性、资源生命周期和故障恢复提交修复。</p></div>
-<div class="metric-strip detail-strip">
-<div><strong>2</strong><span>Merged PRs</span></div>
-<div><strong>4</strong><span>Open PRs</span></div>
-<div><strong>Store + TE</strong><span>主要模块</span></div>
-<div><strong>2026-08-30</strong><span>状态快照</span></div>
-</div>
-</div>
-</section>
-<section class="dense-section section-line">
-<div class="shell detail-narrow">
-<div class="dense-heading"><h2>已合并贡献</h2><a href="https://github.com/kvcache-ai/Mooncake" rel="noreferrer" target="_blank">Upstream repository ↗</a></div>
-<div class="contribution-table-wrap">
-<table class="compact-table">
-<thead><tr><th>PR</th><th>问题</th><th>修复</th><th>状态</th></tr></thead>
-<tbody>
-<tr>
-<td><a href="https://github.com/kvcache-ai/Mooncake/pull/3660" rel="noreferrer" target="_blank">#3660 ↗</a></td>
-<td>RDMA Memory Region 注销后未恢复 Fork State，持续切分 VMA；高频注册/注销下可能耗尽 <code>vm.max_map_count</code>。</td>
-<td>在 <code>ibv_dereg_mr</code> 成功后对原地址范围调用 <code>MADV_DOFORK</code>，并处理 Deregister 后访问 MR 的生命周期问题。</td>
-<td><span class="status merged">MERGED</span><small>2026-08-26</small></td>
-</tr>
-<tr>
-<td><a href="https://github.com/kvcache-ai/Mooncake/pull/3604" rel="noreferrer" target="_blank">#3604 ↗</a></td>
-<td>RDMA 端口恢复后，Endpoint Store 仍返回已进入 Error 状态的旧 QP，导致恢复后传输持续超时。</td>
-<td>在端口恢复时淘汰 FIFO / SIEVE Store 中的全部失效 Endpoint，使后续请求创建新的 QP。</td>
-<td><span class="status merged">MERGED</span><small>2026-08-27</small></td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</section>
-<section class="dense-section section-line">
-<div class="shell detail-narrow">
-<div class="dense-heading"><h2>审阅中的修复</h2><span>状态可能随上游审阅变化</span></div>
-<div class="issue-list">
-<a href="https://github.com/kvcache-ai/Mooncake/pull/3726" rel="noreferrer" target="_blank"><strong>#3726</strong><span>修复 Offloading Queue “未入队却返回成功”导致的幽灵任务与引用计数泄漏</span><b>OPEN</b></a>
-<a href="https://github.com/kvcache-ai/Mooncake/pull/3661" rel="noreferrer" target="_blank"><strong>#3661</strong><span>为有界 MPSC Queue 增加非阻塞提交，避免 Retry Path 在满队列下永久活锁</span><b>OPEN</b></a>
-<a href="https://github.com/kvcache-ai/Mooncake/pull/3662" rel="noreferrer" target="_blank"><strong>#3662</strong><span>Batch Get Session 使用 Best Replica，支持仅存在于 SSD 的副本</span><b>OPEN</b></a>
-<a href="https://github.com/kvcache-ai/Mooncake/pull/3601" rel="noreferrer" target="_blank"><strong>#3601</strong><span>在提交 Bucket Metadata 前 Flush 数据，恢复 Write-ordering Durability</span><b>OPEN</b></a>
-</div>
-</div>
-</section>
-<section class="dense-section section-line">
-<div class="shell detail-narrow two-column-dense">
-<div>
-<div class="dense-heading"><h2>体现的工程能力</h2></div>
-<ul class="compact-list">
-<li>从 Issue、调用链和资源生命周期中定位分布式系统故障，而不是只修补表层报错。</li>
-<li>覆盖 C++ 并发、RDMA Verbs、QP / MR 生命周期、存储持久性与异步任务状态。</li>
-<li>根据 Review 反馈补充锁粒度、Use-after-free 与失败语义等边界，再完成合入。</li>
-</ul>
-</div>
-<div>
-<div class="dense-heading"><h2>表述边界</h2></div>
-<p class="boundary-note">“为 Mooncake 做开源贡献”是准确表述；已合并部分可写为 Accepted / Merged Contributions。审阅中的 PR 只写 Submitted / Under Review，不作为已经进入上游的交付成果。</p>
-</div>
-</div>
-</section>
+<section class="compact-page-head"><div class="shell"><div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>Mooncake</span></div><span class="eyebrow">Open Source · Distributed KV Cache · RDMA · Storage</span><div class="page-title-line"><h1>Mooncake：从 RDMA 生命周期到 Store 正确性。</h1><p>截至 2026-09-09，4 个 Bugfix PR 已合入上游，另有 2 个 PR 处于审阅中。</p></div><div class="metric-strip detail-strip"><div><strong>4</strong><span>Merged PRs</span></div><div><strong>2</strong><span>Under review</span></div><div><strong>TE + Store</strong><span>覆盖模块</span></div><div><strong>2026.09</strong><span>Status snapshot</span></div></div></div></section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>已合入上游</h2><span>Accepted</span></div><div class="contribution-table-wrap"><table class="compact-table"><thead><tr><th>PR</th><th>模块</th><th>问题与修复</th><th>状态</th></tr></thead><tbody>
+<tr><td><a href="https://github.com/kvcache-ai/Mooncake/pull/3726" target="_blank" rel="noreferrer">#3726 ↗</a></td><td>Store</td><td>修复 Offloading Queue “未入队却返回成功”的语义漏洞，避免 phantom task 与引用计数泄漏。</td><td>MERGED</td></tr>
+<tr><td><a href="https://github.com/kvcache-ai/Mooncake/pull/3601" target="_blank" rel="noreferrer">#3601 ↗</a></td><td>Store</td><td>在提交 Bucket Metadata 前执行 datasync / fdatasync，并覆盖同步失败后的孤儿文件清理，恢复写入顺序持久性。</td><td>MERGED</td></tr>
+<tr><td><a href="https://github.com/kvcache-ai/Mooncake/pull/3604" target="_blank" rel="noreferrer">#3604 ↗</a></td><td>Transfer Engine</td><td>RDMA 端口恢复后淘汰 stale Endpoint / QP，使下一次访问重建连接，避免复用错误状态 QP。</td><td>MERGED</td></tr>
+<tr><td><a href="https://github.com/kvcache-ai/Mooncake/pull/3660" target="_blank" rel="noreferrer">#3660 ↗</a></td><td>Transfer Engine</td><td>MR 注销后恢复 MADV_DOFORK，避免高频注册/注销留下永久 VMA 分裂并耗尽 vm.max_map_count。</td><td>MERGED</td></tr>
+</tbody></table></div></div></section>
+<section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>审阅中</h2><span>Open</span></div><div class="timeline-compact"><div><time>#3661</time><strong>TENT bounded queue / retry admission</strong><span>把 queue-full 从永久自旋/活锁改成可失败的非阻塞提交，并继续收紧 batch admission 与异步生命周期边界。 <a href="https://github.com/kvcache-ai/Mooncake/pull/3661" target="_blank" rel="noreferrer">PR ↗</a></span></div><div><time>#3662</time><strong>Store session replica selection</strong><span>围绕 SSD offloading 场景下的 session ranged-get 与 replica selection 继续完善语义和回归覆盖。 <a href="https://github.com/kvcache-ai/Mooncake/pull/3662" target="_blank" rel="noreferrer">PR ↗</a></span></div></div><p class="boundary-note"><strong>状态边界。</strong> 本页只把 GitHub 当前显示为 merged 的 PR 计入“已合入”；Open PR 不计入 5 个独立上游合入总数。TensorFlow MUSA PR 属于摩尔线程实习产出，也不计入这一独立开源口径。</p></div></section>
 </main>
-<footer class="site-footer compact-footer">
-<div class="shell footer-inner">
-<span>© <span data-year=""></span> Haoran Feng</span>
-<div class="footer-links">
-<a href="mailto:225010160@link.cuhk.edu.cn">Email</a>
-<a href="https://github.com/XFDG" rel="noreferrer" target="_blank">GitHub</a>
-<a href="https://blog.csdn.net/XFDG01" rel="me noopener noreferrer" target="_blank">CSDN</a>
-<a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" rel="me noopener noreferrer" target="_blank">知乎</a>
-<a href="../resume.html">Resume</a>
-</div>
-</div>
-</footer>
-</body>
-</html>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="../resume.html">Resume</a></div></div></footer>
+</body></html>
