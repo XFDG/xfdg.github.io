@@ -1,43 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="An ongoing lightweight runtime used to understand quantized data formats, kernel dispatch, attention backends, KV cache, and multi-GPU execution as one system.">
-  <meta name="theme-color" content="#f4f2ed">
-  <link rel="canonical" href="https://xfdg.github.io/en/projects/quant-runtime.html">
-  <link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/quant-runtime.html">
-  <link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/quant-runtime.html">
-  <link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/quant-runtime.html">
-  <title>LLMQRT quantized inference runtime — Haoran Feng</title>
-  <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../../styles.css">
-  <script src="../../script.js" defer></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLMQRT: quantized inference runtime — Haoran Feng</title><meta name="description" content="A PyTorch Extension runtime for two-H200, 32B quantized inference and tensor parallelism.">
+<meta name="theme-color" content="#f4f2ed"><meta property="og:title" content="LLMQRT: quantized inference runtime — Haoran Feng"><meta property="og:description" content="A PyTorch Extension runtime for two-H200, 32B quantized inference and tensor parallelism."><meta property="og:type" content="website"><meta property="og:url" content="https://xfdg.github.io/en/projects/quant-runtime.html">
+<link rel="canonical" href="https://xfdg.github.io/en/projects/quant-runtime.html"><link rel="alternate" hreflang="zh-CN" href="https://xfdg.github.io/projects/quant-runtime.html"><link rel="alternate" hreflang="en" href="https://xfdg.github.io/en/projects/quant-runtime.html"><link rel="alternate" hreflang="x-default" href="https://xfdg.github.io/projects/quant-runtime.html">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/portfolio.css?v=20260929"><script src="/script.js" defer></script>
 </head>
-<body class="compact-site editorial-site" data-page="projects">
-<header class="site-header">
-  <div class="shell header-inner">
-    <a class="brand" href="../../en/index.html" aria-label="Home">
-      <span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span>
-    </a>
-    <button class="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span></button>
-    <nav class="site-nav" aria-label="Primary navigation"><a data-nav="home" href="../../en/index.html">Home</a><a data-nav="projects" href="../../en/projects.html">Work</a><a data-nav="experience" href="../../en/experience.html">Experience</a><a data-nav="writing" href="../../en/writing.html">Writing</a><a data-nav="contact" href="../../en/contact.html">Contact</a><a data-nav="resume" href="../../en/resume.html" class="nav-cta">Résumé</a></nav>
-  </div>
-</header>
-<main>
-
-<section class="compact-page-head">
-  <div class="shell">
-    <div class="detail-breadcrumbs"><a href="../projects.html">Projects</a><span>/</span><span>LLMQRT quantized inference runtime</span></div>
-    <span class="eyebrow">Quantization · PyTorch Extension · CUDA</span>
-    <div class="page-title-line"><h1>LLMQRT quantized inference runtime</h1><p>An ongoing lightweight runtime used to understand quantized data formats, kernel dispatch, attention backends, KV cache, and multi-GPU execution as one system.</p></div>
-    <div class="metric-strip detail-strip"><div><strong>W4A16</strong><span>AWQ path</span></div><div><strong>W8A8</strong><span>SmoothQuant path</span></div><div><strong>FP8</strong><span>Dynamic / static</span></div><div><strong>H200</strong><span>Validation platform</span></div></div>
-  </div>
-</section>
-<section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Scope</h2><span>Runtime rather than isolated kernels</span></div><p>The project connects model loading, quantization metadata, custom linear operators, attention backends, KV-cache management, and tensor parallelism.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Kernel paths</h2><span>Prefill and decode are different workloads</span></div><p>Prefill emphasizes matrix-matrix multiplication; decode often becomes GEMV-like and more sensitive to memory traffic, launch overhead, packing, and dequantization layout.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Formats</h2><span>AWQ, INT8, and FP8</span></div><p>Implemented or evaluated W4A16 AWQ, W8A8 SmoothQuant/CUTLASS paths, and dynamic/static FP8, with explicit attention to schema compatibility and scale layout.</p></div></section><section class="dense-section section-line"><div class="shell detail-narrow"><div class="dense-heading"><h2>Status</h2><span>Work in progress</span></div><p class="boundary-note">The page describes architecture and validated paths. It avoids publishing performance claims that are not yet backed by a stable, comparable end-to-end benchmark matrix.</p></div></section>
-<section class="dense-section section-line"><div class="shell detail-narrow"><div class="button-row"><a class="button primary" href="https://github.com/XFDG" target="_blank" rel="noreferrer">Public source ↗</a><a class="button" href="../projects.html">All projects</a></div></div></section>
-
-</main>
-<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year></span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="me noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="me noopener noreferrer">Zhihu</a><a href="../../en/resume.html">Résumé</a></div></div></footer>
-</body>
-</html>
+<body class="portfolio-site" data-page="projects">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header"><div class="shell header-inner"><a class="brand" href="/en/"><span class="brand-copy">Haoran Feng <small>AI Infrastructure</small></span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Toggle navigation"><span></span></button><nav class="site-nav" id="site-nav" aria-label="Primary navigation"><a data-nav="home" href="/en/">Home</a><a data-nav="projects" href="/en/projects.html" class="active" aria-current="page">Work</a><a data-nav="experience" href="/en/experience.html">Experience</a><a data-nav="writing" href="/en/writing.html">Writing</a><a data-nav="contact" href="/en/contact.html">Contact</a><a data-nav="resume" href="/en/resume.html">Résumé</a><span class="language-switch" aria-label="Language"><a href="/projects/quant-runtime.html" lang="zh-CN">中</a><span class="language-divider" aria-hidden="true">/</span><a href="/en/projects/quant-runtime.html" class="is-active" aria-current="page">EN</a></span></nav></div></header>
+<main id="main"><section class="compact-page-head"><div class="shell"><span class="eyebrow">runtime / Engineering</span><h1>LLMQRT: quantized inference runtime</h1><p class="page-lead">A PyTorch Extension runtime for two-H200, 32B quantized inference and tensor parallelism.</p><div class="quick-links"><a href="/en/projects.html">Project index</a></div></div></section><section class="dense-section section-line"><div class="shell reading"><div class="dense-heading"><h2>Problem &amp; contribution</h2></div><p>Deploying a 32B quantized model on two H200 GPUs required integration across quantization backends, attention, KV cache and collectives, plus tail-group memory-safety fixes.</p><p>Adapted W4A16 / W8A8 / FP8 backends and integrated FlashAttention-2/4, GQA, softcap and SDPA. Used Compute Sanitizer to isolate gemv_kernel_g128 tail-group out-of-bounds accesses; added guards, packed-AWQ TP=2 column/row sharding and NCCL all-reduce.</p></div></section><section class="dense-section section-line"><div class="shell reading"><div class="dense-heading"><h2>Validation</h2></div><div class="table-wrap"><table class=""><thead><tr><th scope="col">Condition / metric</th><th scope="col">Result</th></tr></thead><tbody><tr><td>Qwen2.5-Coder-32B W4A16 checkpoint size</td><td>−70.5%</td></tr><tr><td>Peak GPU memory</td><td>−66.8%</td></tr><tr><td>End-to-end output throughput</td><td>+76.8%</td></tr><tr><td>Four sanitizer checks on representative shapes</td><td>0 error / 0 hazard</td></tr></tbody></table></div><p>December 2025–present. Passed numerical, cross-rank token and interactive acceptance checks for the two-H200 deployment.</p><p class="source-note">Source: the author’s September 2026 resume and engineering summary; results apply to the stated test conditions.</p><p class="boundary-note">Percentages describe the project’s paired Qwen2.5-Coder-32B deployment comparison and depend on its baseline and configuration. They are not general gains for every model or attention backend.</p></div></section></main>
+<footer class="site-footer"><div class="shell footer-inner"><span>© <span data-year>2026</span> Haoran Feng</span><div class="footer-links"><a href="mailto:225010160@link.cuhk.edu.cn">Email</a><a href="https://github.com/XFDG" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://blog.csdn.net/XFDG01" target="_blank" rel="noopener noreferrer">CSDN</a><a href="https://www.zhihu.com/people/xian-feng-dao-gu-73-49" target="_blank" rel="noopener noreferrer">Zhihu</a><a href="/en/opensource.html">Open source</a><a href="/en/roadmap.html">Now</a></div></div></footer>
+</body></html>
