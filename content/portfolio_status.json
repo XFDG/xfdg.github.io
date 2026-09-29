@@ -1,0 +1,40 @@
+{
+  "verified_on": "2026-09-29",
+  "author": "XFDG",
+  "scope": "Selected AI infrastructure upstream repositories; internship contributions included and identified; personal-fork, academic collaboration and Git practice PRs excluded.",
+  "groups": [
+    {"name":"Mooncake","repo":"kvcache-ai/Mooncake","category":"community","page":"projects/mooncake-contributions.html","prs":[
+      {"number":4278,"state":"merged","zh":"保留 BatchReplicaClear RPC 的租户身份，避免同名对象跨租户误清理。","en":"Preserve tenant identity in BatchReplicaClear RPCs to prevent cross-tenant cleanup of same-named objects."},
+      {"number":4016,"state":"merged","zh":"隔离 Linux hugepage 依赖，修复 macOS Store 构建兼容性；不等同于全部传输后端支持 macOS。","en":"Guard Linux-only hugepage dependencies for macOS Store builds; not a claim of macOS support for every transport."},
+      {"number":3662,"state":"merged","zh":"使本地 MEMORY 副本优先级不受返回顺序影响，并补充回归用例；最终范围不含 SSD session 支持。","en":"Make local MEMORY preference independent of replica order, with regression coverage; the final scope excludes SSD session support."},
+      {"number":3726,"state":"merged","zh":"未实际入队时返回失败，避免 Offloading 幽灵任务及引用计数泄漏。","en":"Report no-op offload enqueue as failure to avoid phantom tasks and reference-count leaks."},
+      {"number":3601,"state":"merged","zh":"先同步数据再提交元数据，处理同步失败后的孤儿文件清理。","en":"Synchronize bucket data before committing metadata and clean up orphan files after sync failure."},
+      {"number":3604,"state":"merged","zh":"RDMA 端口恢复后淘汰失效 Endpoint / QP，使后续请求重建连接。","en":"Evict stale endpoints and queue pairs after RDMA port recovery so subsequent requests rebuild connections."},
+      {"number":3660,"state":"merged","zh":"内存注销后恢复 fork 状态，并修正注销后的元数据生命周期。","en":"Restore fork state after memory deregistration and respect memory-region metadata lifetime."}
+    ]},
+    {"name":"TensorFlow MUSA","repo":"MooreThreads/tensorflow_musa_extension","category":"internship","page":"projects/musa-extension.html","prs":[
+      {"number":163,"state":"merged","zh":"AdaMax 算子、资源变量支持与测试覆盖。","en":"AdaMax operators, resource-variable support and tests."},
+      {"number":144,"state":"merged","zh":"长跑稳定性、OOM 与 GradientDescent locking 修复。","en":"Long-run stability, OOM and GradientDescent locking fixes."},
+      {"number":138,"state":"merged","zh":"GradientDescent 普通变量与资源变量算子。","en":"GradientDescent operators for reference and resource variables."},
+      {"number":135,"state":"merged","zh":"调试计时与 shape 同步稳定性。","en":"Debug timing and shape synchronization stability."},
+      {"number":129,"state":"merged","zh":"Logical_Or 标量广播优化及逻辑算子测试。","en":"Logical_Or scalar-broadcast optimization and logical-operator tests."},
+      {"number":113,"state":"merged","zh":"AddV2 热路径优化与性能分析降噪。","en":"AddV2 hot-path optimization and profiling-noise reduction."},
+      {"number":101,"state":"merged","zh":"muDNN GELU、融合链路与真实 shape benchmark。","en":"muDNN GELU, fusion fixes and workload-shaped benchmarks."},
+      {"number":78,"state":"merged","zh":"ResourceApplyAdam 更新与 Session 关闭修复。","en":"ResourceApplyAdam updates and session-close stability."},
+      {"number":72,"state":"merged","zh":"GELU 图融合实现与正确性验证。","en":"GELU graph fusion and correctness validation."},
+      {"number":57,"state":"merged","zh":"Kernel Timing 性能分析工具。","en":"Kernel timing instrumentation."}
+    ]},
+    {"name":"Ray","repo":"ray-project/ray","category":"community","page":"opensource.html#ray","prs":[
+      {"number":66502,"state":"merged","zh":"让 grpcio registered handlers 经过 Serve proxy，保留 passthrough 服务并兼容旧版 API。","en":"Route grpcio registered handlers through the Serve proxy, preserving passthrough services and older-API compatibility."}
+    ]},
+    {"name":"FlashInfer","repo":"flashinfer-ai/flashinfer","category":"community","page":"opensource.html#flashinfer","prs":[
+      {"number":5171,"state":"merged","zh":"修复 BF16 rank-major session CPU 测试在已安装包隔离环境中的资源定位，保持无需导入 CUDA driver 的测试约定。","en":"Fix resource lookup for BF16 rank-major session CPU tests in isolated installed-package layouts without importing the CUDA driver."}
+    ]},
+    {"name":"Mirage","repo":"mirage-project/mirage","category":"community","page":"projects/mirage-contribution.html","prs":[
+      {"number":755,"state":"merged","zh":"调整 Qwen3 示例的 lm_head padding 初始化，处理 padding 参与 Argmax 的非法 Token 问题。","en":"Adjust lm_head padding initialization in Qwen3 demos to address invalid tokens from padded Argmax candidates."}
+    ]}
+  ],
+  "tracked_open": [
+    {"repo":"kvcache-ai/Mooncake","number":3661,"state":"open","zh":"有界队列非阻塞提交、批次准入与失败传播；仍在审阅，不计入已合入数量。","en":"Non-blocking bounded queues, batch admission and failure propagation; still open, excluded from merged counts."}
+  ]
+}

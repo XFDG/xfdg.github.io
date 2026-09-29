@@ -1,258 +1,75 @@
 (() => {
+  'use strict';
   document.documentElement.style.colorScheme = 'light';
-  const rootStyle = document.documentElement.style;
-  const legacyTokens = {
-    '--bg': 'var(--paper)',
-    '--bg-soft': 'var(--paper-2)',
-    '--surface': 'transparent',
-    '--surface-solid': 'var(--paper)',
-    '--surface-2': 'var(--paper-2)',
-    '--text': 'var(--ink)',
-    '--text-soft': 'var(--ink-soft)',
-    '--line': 'var(--rule)',
-    '--line-strong': 'var(--rule-strong)',
-    '--accent-strong': 'var(--accent)',
-    '--accent-2': 'var(--accent)',
-    '--shadow': 'none',
-    '--radius-sm': '0px',
-    '--radius': '0px',
-    '--radius-lg': '0px'
-  };
-  Object.entries(legacyTokens).forEach(([name, value]) => rootStyle.setProperty(name, value));
-
-  const themeMeta = document.querySelector('meta[name="theme-color"]');
-  if (themeMeta) themeMeta.setAttribute('content', '#f4f2ed');
-
-  const header = document.querySelector('.site-header');
-  const menuToggle = document.querySelector('.menu-toggle');
+  // Preserve design-token compatibility for existing archival project pages.
+  const tokens = {'--bg':'var(--paper)','--bg-soft':'var(--paper-2)','--surface':'transparent','--surface-solid':'var(--paper)','--surface-2':'var(--paper-2)','--text':'var(--ink)','--text-soft':'var(--ink-soft)','--line':'var(--rule)','--line-strong':'var(--rule-strong)','--accent-strong':'var(--accent)','--accent-2':'var(--accent)','--shadow':'none','--radius-sm':'0px','--radius':'0px','--radius-lg':'0px'};
+  Object.entries(tokens).forEach(([key,value]) => document.documentElement.style.setProperty(key,value));
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content','#f4f2ed');
+  document.querySelectorAll('.brand-copy small').forEach(node => { node.textContent = 'AI Infrastructure'; });
   const nav = document.querySelector('.site-nav');
-  const page = document.body.dataset.page;
-
-  document.querySelectorAll('.brand-copy small').forEach((node) => {
-    node.textContent = 'AI Infrastructure';
+  const toggle = document.querySelector('.menu-toggle');
+  const closeMenu = () => { toggle?.setAttribute('aria-expanded','false'); nav?.classList.remove('open'); };
+  toggle?.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') !== 'true';
+    toggle.setAttribute('aria-expanded',String(open));
+    nav?.classList.toggle('open',open);
   });
-
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
   if (nav) {
-    const orderedKeys = ['home', 'projects', 'experience', 'writing', 'contact', 'resume'];
-    const links = new Map();
-    nav.querySelectorAll('a[data-nav]').forEach((link) => links.set(link.dataset.nav, link));
-    nav.querySelectorAll('a[data-nav="roadmap"]').forEach((link) => link.remove());
-    orderedKeys.forEach((key) => {
+    const links = new Map(Array.from(nav.querySelectorAll('a[data-nav]'), link => [link.dataset.nav,link]));
+    nav.querySelectorAll('a[data-nav="roadmap"]').forEach(link => link.remove());
+    ['home','projects','experience','writing','contact','resume'].forEach(key => {
       const link = links.get(key);
-      if (link && link.isConnected) nav.appendChild(link);
+      if (link?.isConnected) nav.appendChild(link);
     });
-  }
-
-  const updateHeader = () => {
-    header?.classList.toggle('is-scrolled', window.scrollY > 8);
-  };
-
-  updateHeader();
-  window.addEventListener('scroll', updateHeader, { passive: true });
-
-  if (menuToggle && nav) {
-    menuToggle.addEventListener('click', () => {
-      const open = menuToggle.getAttribute('aria-expanded') === 'true';
-      menuToggle.setAttribute('aria-expanded', String(!open));
-      nav.classList.toggle('open', !open);
-    });
-
-    nav.querySelectorAll('a').forEach((link) => {
-      link.addEventListener('click', () => {
-        menuToggle.setAttribute('aria-expanded', 'false');
-        nav.classList.remove('open');
+    const english = /^\/en(?:\/|$)/.test(location.pathname);
+    let switcher = nav.querySelector('.language-switch');
+    if (!switcher) {
+      switcher = document.createElement('span');
+      switcher.className = 'language-switch';
+      switcher.setAttribute('aria-label','Language');
+      switcher.innerHTML = '<a lang="zh-CN">中</a><span class="language-divider" aria-hidden="true">/</span><a lang="en">EN</a>';
+    }
+    nav.appendChild(switcher);
+    const normalized = location.pathname.replace(/\/index\.html$/, '/');
+    const zhPath = english ? (normalized.replace(/^\/en/, '') || '/') : normalized;
+    const suffix = location.search + location.hash;
+    const alternatives = switcher.querySelectorAll('a');
+    alternatives.forEach((link,index) => {
+      const isEn = index === 1;
+      link.href = (isEn ? '/en' + (zhPath.startsWith('/') ? zhPath : '/' + zhPath) : zhPath) + suffix;
+      link.lang = isEn ? 'en' : 'zh-CN';
+      link.classList.toggle('is-active',isEn === english);
+      if (isEn === english) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current');
+      link.addEventListener('click',() => {
+        try { localStorage.setItem('site-language',isEn ? 'en' : 'zh-CN'); } catch (_) { /* Storage may be disabled. */ }
       });
     });
+    nav.querySelectorAll('a').forEach(link => link.addEventListener('click',closeMenu));
+    const active = links.get(document.body.dataset.page);
+    active?.classList.add('active');
   }
-
-  if (page) {
-    document.querySelectorAll(`[data-nav="${page}"]`).forEach((item) => item.classList.add('active'));
-  }
-
-  document.querySelectorAll('.reveal').forEach((element) => element.classList.add('visible'));
-
-  document.querySelectorAll('[data-year]').forEach((element) => {
-    element.textContent = String(new Date().getFullYear());
-  });
-
-  document.querySelectorAll('[data-copy-email]').forEach((button) => {
-    const original = button.textContent;
-    button.addEventListener('click', async () => {
-      const email = button.dataset.copyEmail;
+  const header = document.querySelector('.site-header');
+  const onScroll = () => header?.classList.toggle('is-scrolled',scrollY > 8);
+  onScroll();
+  window.addEventListener('scroll',onScroll,{passive:true});
+  document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+  document.querySelectorAll('[data-year]').forEach(el => { el.textContent = String(new Date().getFullYear()); });
+  document.querySelectorAll('[data-copy-email]').forEach(button => {
+    button.addEventListener('click',async () => {
+      const original = button.textContent;
       try {
-        await navigator.clipboard.writeText(email);
-        button.textContent = document.documentElement.lang.startsWith('en') ? 'Copied' : '邮箱已复制';
-        setTimeout(() => { button.textContent = original; }, 1600);
-      } catch {
-        window.location.href = `mailto:${email}`;
-      }
+        await navigator.clipboard.writeText(button.dataset.copyEmail);
+        button.textContent = document.documentElement.lang.startsWith('en') ? 'Copied' : '已复制';
+        setTimeout(() => { button.textContent = original; },1600);
+      } catch (_) { location.href = 'mailto:' + button.dataset.copyEmail; }
     });
   });
-
-  const filterButtons = document.querySelectorAll('[data-filter]');
-  const filterItems = document.querySelectorAll('[data-category]');
-
-  filterButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      const filter = button.dataset.filter;
-      filterButtons.forEach((item) => item.classList.toggle('active', item === button));
-      filterItems.forEach((item) => {
-        const categories = (item.dataset.category || '').split(' ');
-        item.hidden = filter !== 'all' && !categories.includes(filter);
-      });
+  const filters = document.querySelectorAll('[data-filter]');
+  filters.forEach(button => button.addEventListener('click',() => {
+    filters.forEach(item => item.classList.toggle('active',item === button));
+    document.querySelectorAll('[data-category]').forEach(item => {
+      item.hidden = button.dataset.filter !== 'all' && !(item.dataset.category || '').split(' ').includes(button.dataset.filter);
     });
-  });
-})();
-
-// bilingual-language-switch
-(() => {
-  const path = window.location.pathname || '/';
-  const isEnglish = path === '/en' || path.startsWith('/en/');
-  if (isEnglish) document.documentElement.lang = 'en';
-
-  const normalized = path.replace(/\/index\.html$/, '/');
-  let counterpart;
-  if (isEnglish) {
-    counterpart = normalized.replace(/^\/en/, '') || '/';
-    if (!counterpart.startsWith('/')) counterpart = `/${counterpart}`;
-  } else {
-    counterpart = normalized === '/' ? '/en/' : `/en${normalized}`;
-  }
-
-  const nav = document.querySelector('.site-nav');
-  if (!nav || nav.querySelector('.language-switch')) return;
-
-  const switcher = document.createElement('span');
-  switcher.className = 'language-switch';
-  switcher.setAttribute('aria-label', isEnglish ? 'Language' : '语言');
-
-  const zh = document.createElement('a');
-  zh.href = isEnglish ? counterpart : normalized;
-  zh.textContent = '中';
-  zh.lang = 'zh-CN';
-  zh.classList.toggle('is-active', !isEnglish);
-  if (!isEnglish) zh.setAttribute('aria-current', 'page');
-
-  const divider = document.createElement('span');
-  divider.className = 'language-divider';
-  divider.textContent = '/';
-
-  const en = document.createElement('a');
-  en.href = isEnglish ? normalized : counterpart;
-  en.textContent = 'EN';
-  en.lang = 'en';
-  en.classList.toggle('is-active', isEnglish);
-  if (isEnglish) en.setAttribute('aria-current', 'page');
-
-  const closeMenu = () => {
-    document.querySelector('.menu-toggle')?.setAttribute('aria-expanded', 'false');
-    nav.classList.remove('open');
-  };
-  zh.addEventListener('click', () => {
-    localStorage.setItem('site-language', 'zh-CN');
-    closeMenu();
-  });
-  en.addEventListener('click', () => {
-    localStorage.setItem('site-language', 'en');
-    closeMenu();
-  });
-
-  switcher.append(zh, divider, en);
-  nav.appendChild(switcher);
-})();
-
-
-// bilingual-language-switch
-(() => {
-  const path = window.location.pathname || '/';
-  const isEnglish = path === '/en' || path.startsWith('/en/');
-  if (isEnglish) document.documentElement.lang = 'en';
-
-  const normalized = path.replace(/\/index\.html$/, '/');
-  let counterpart;
-  if (isEnglish) {
-    counterpart = normalized.replace(/^\/en/, '') || '/';
-    if (!counterpart.startsWith('/')) counterpart = `/${counterpart}`;
-  } else {
-    counterpart = normalized === '/' ? '/en/' : `/en${normalized}`;
-  }
-
-  const nav = document.querySelector('.site-nav');
-  if (!nav || nav.querySelector('.language-switch')) return;
-
-  const switcher = document.createElement('span');
-  switcher.className = 'language-switch';
-  switcher.setAttribute('aria-label', isEnglish ? 'Language' : '语言');
-
-  const zh = document.createElement('a');
-  zh.href = isEnglish ? counterpart : normalized;
-  zh.textContent = '中';
-  zh.lang = 'zh-CN';
-  zh.classList.toggle('is-active', !isEnglish);
-  zh.setAttribute('aria-current', !isEnglish ? 'page' : 'false');
-
-  const divider = document.createElement('span');
-  divider.className = 'language-divider';
-  divider.textContent = '/';
-
-  const en = document.createElement('a');
-  en.href = isEnglish ? normalized : counterpart;
-  en.textContent = 'EN';
-  en.lang = 'en';
-  en.classList.toggle('is-active', isEnglish);
-  en.setAttribute('aria-current', isEnglish ? 'page' : 'false');
-
-  zh.addEventListener('click', () => localStorage.setItem('site-language', 'zh-CN'));
-  en.addEventListener('click', () => localStorage.setItem('site-language', 'en'));
-
-  switcher.append(zh, divider, en);
-  nav.appendChild(switcher);
-})();
-
-
-// bilingual-language-switch
-(() => {
-  const path = window.location.pathname || '/';
-  const isEnglish = path === '/en' || path.startsWith('/en/');
-  if (isEnglish) document.documentElement.lang = 'en';
-
-  const normalized = path.replace(/\/index\.html$/, '/');
-  let counterpart;
-  if (isEnglish) {
-    counterpart = normalized.replace(/^\/en/, '') || '/';
-    if (!counterpart.startsWith('/')) counterpart = `/${counterpart}`;
-  } else {
-    counterpart = normalized === '/' ? '/en/' : `/en${normalized}`;
-  }
-
-  const nav = document.querySelector('.site-nav');
-  if (!nav || nav.querySelector('.language-switch')) return;
-
-  const switcher = document.createElement('span');
-  switcher.className = 'language-switch';
-  switcher.setAttribute('aria-label', isEnglish ? 'Language' : '语言');
-
-  const zh = document.createElement('a');
-  zh.href = isEnglish ? counterpart : normalized;
-  zh.textContent = '中';
-  zh.lang = 'zh-CN';
-  zh.classList.toggle('is-active', !isEnglish);
-  zh.setAttribute('aria-current', !isEnglish ? 'page' : 'false');
-
-  const divider = document.createElement('span');
-  divider.className = 'language-divider';
-  divider.textContent = '/';
-
-  const en = document.createElement('a');
-  en.href = isEnglish ? normalized : counterpart;
-  en.textContent = 'EN';
-  en.lang = 'en';
-  en.classList.toggle('is-active', isEnglish);
-  en.setAttribute('aria-current', isEnglish ? 'page' : 'false');
-
-  zh.addEventListener('click', () => localStorage.setItem('site-language', 'zh-CN'));
-  en.addEventListener('click', () => localStorage.setItem('site-language', 'en'));
-
-  switcher.append(zh, divider, en);
-  nav.appendChild(switcher);
+  }));
 })();

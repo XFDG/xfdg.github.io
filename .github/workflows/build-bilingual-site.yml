@@ -4,50 +4,63 @@ on:
   push:
     branches: [main]
     paths:
-      - tools/build_bilingual.py
-      - tools/sync_profile_status.py
-      - .github/workflows/build-bilingual-site.yml
+      - 'tools/**'
+      - 'content/**'
+      - 'portfolio.css'
+      - 'script.js'
+      - '.github/workflows/build-bilingual-site.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
   pages: write
 
+concurrency:
+  group: bilingual-portfolio
+  cancel-in-progress: false
+
 jobs:
   build-bilingual:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Generate bilingual pages
+      - name: Generate and validate both languages
         run: |
-          python tools/build_bilingual.py
-          python tools/sync_profile_status.py
+          python -m py_compile tools/build_portfolio.py tools/check_portfolio.py tools/check_live_site.py
+          python tools/build_portfolio.py
+          python tools/check_portfolio.py
+          node --check script.js
           python - <<'PY'
+          import hashlib
+          import subprocess
           from pathlib import Path
-          p = Path('experience.html')
-          text = p.read_text(encoding='utf-8')
-          old = '<p>围绕 H200 上的大模型训练推理链路；现已具备 Blackwell 实机环境，用于后续跨代验证。完成 CUDA Graph 稳定性根因定位、MoE Router Replay、异步 GPU 状态算子、Grouped GEMM workload 重建与离线推理交付。</p>'
-          new = '<p>围绕 H200 上的大模型训练推理链路，完成 CUDA Graph 稳定性根因定位、MoE Router Replay、异步 GPU 状态算子、Grouped GEMM workload 重建与离线推理交付。现已具备 Blackwell 实机环境，用于后续跨代验证。</p>'
-          text = text.replace(old, new)
-          p.write_text(text, encoding='utf-8')
+          def snapshot():
+              return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in Path('.').rglob('*.html') if '.git' not in p.parts}
+          before = snapshot()
+          subprocess.run(['python', 'tools/build_portfolio.py'], check=True)
+          assert before == snapshot(), 'Bilingual generation is not idempotent'
+          print('PASS: repeat generation is byte-identical')
           PY
 
-      - name: Commit generated bilingual site
+      - name: Publish generated pages
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add en index.html 404.html projects.html experience.html writing.html contact.html resume.html research.html roadmap.html projects script.js styles.css sitemap.xml
-          if git diff --cached --quiet; then
-            echo 'No generated changes.'
-          else
-            git commit -m 'Refresh OSS status and Blackwell access'
+          git add -- '*.html' 'en' 'projects' 'sitemap.xml'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Publish IQuest-Q1 portfolio and verified open-source contributions'
             git push origin HEAD:main
           fi
+          echo "Published content commit: $(git rev-parse HEAD)"
 
-      - name: Trigger Pages rebuild
+      - name: Request GitHub Pages build
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
+        run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"
+
+      - name: Verify the public site matches the generated content
+        run: python tools/check_live_site.py --timeout 240
