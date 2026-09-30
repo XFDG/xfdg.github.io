@@ -238,8 +238,6 @@ def iquest(lang: str) -> None:
     columns=[(('训练算子','Training kernels'),('确定性 SWA backward；FC1 计算与通信竞争。','Deterministic SWA backward; FC1 compute–communication contention.')),(('推理 Runtime','Inference runtime'),('确定性 Router GEMM；异步 GPU token 状态。','Deterministic router GEMM; asynchronous GPU token state.')),(('RL 基础设施','RL infrastructure'),('Router Replay；多卡 rollout 与 CUDA Graph 稳定性。','Router Replay; multi-GPU rollout and CUDA Graph stability.'))]
     diagram='<div class="approach">'+''.join(f'<div><span class="mono">0{i}</span><h3>{tx(t,lang)}</h3><p>{tx(p,lang)}</p></div>' for i,(t,p) in enumerate(columns,1))+'</div>'
     body += section(tx(('我的工作范围','My contribution'),lang),diagram+work_rows(DETAILS[:6],lang))
-    boundary = tx(('本页按个人职责展示模型基础设施工作，不宣称主导模型架构、独立训练全模型或独立取得官方榜单成绩。各项目的 48 层 Router 工作负载、Qwen3 对照和 300B 级研发 rollout 是各自的验证配置，不能直接视为最终 88 层 IQuest-Q1 的统一端到端评测。','This page describes my infrastructure responsibilities, not leadership of model architecture, sole training of the model or personal ownership of its benchmark scores. The 48-layer router workload, Qwen3 control and 300B-class development rollout are separate validation configurations, not one end-to-end evaluation of the final 88-layer IQuest-Q1 model.'),lang)
-    body += section(tx(('结果范围','Scope of results'),lang),para(esc(boundary))+f'<p class="source-note">{tx(("个人职责与工程指标依据本人提供的最新简历；模型公开信息依据官方发布资料。未公开内部代码、服务器地址或运行日志。","Personal responsibilities and engineering metrics follow the owner-provided resume. Model specifications follow the official release. Internal code, infrastructure addresses and raw run logs are not published."),lang)}</p>',reading=True)
     write_page('projects/iquest-q1.html',title,lead,body,lang)
 
 
