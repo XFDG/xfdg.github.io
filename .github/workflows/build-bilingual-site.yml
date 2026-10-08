@@ -6,6 +6,8 @@ on:
     paths:
       - 'tools/**'
       - 'content/**'
+      - 'assets/blog/**'
+      - '.pages.yml'
       - 'portfolio.css'
       - 'script.js'
       - '.github/workflows/build-bilingual-site.yml'
@@ -22,18 +24,29 @@ concurrency:
 jobs:
   build-bilingual:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tools/blog-requirements.txt
+      - name: Install Markdown build dependencies
+        run: python -m pip install -r tools/blog-requirements.txt
 
-      - name: Generate and validate both languages
+      - name: Generate and validate portfolio and blog
         run: |
-          python -m py_compile tools/build_portfolio.py tools/check_portfolio.py tools/check_live_site.py
+          python -m py_compile tools/build_portfolio.py tools/build_blog.py tools/check_portfolio.py tools/check_blog.py tools/check_live_site.py
+          python tools/build_blog.py --test
           python tools/build_portfolio.py
+          python tools/build_blog.py
           python tools/check_portfolio.py
+          python tools/check_blog.py
           node --check script.js
+          node --check assets/blog/blog.js
           python - <<'PY'
           import hashlib
           import subprocess
@@ -42,7 +55,8 @@ jobs:
               return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in Path('.').rglob('*.html') if '.git' not in p.parts}
           before = snapshot()
           subprocess.run(['python', 'tools/build_portfolio.py'], check=True)
-          assert before == snapshot(), 'Bilingual generation is not idempotent'
+          subprocess.run(['python', 'tools/build_blog.py'], check=True)
+          assert before == snapshot(), 'Site generation is not idempotent'
           print('PASS: repeat generation is byte-identical')
           PY
 
@@ -50,9 +64,9 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- '*.html' 'en' 'projects' 'sitemap.xml'
+          git add -- '*.html' en projects blog sitemap.xml
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish IQuest-Q1 portfolio and verified open-source contributions'
+            git commit -m 'Publish bilingual portfolio and Markdown blog'
             git push origin HEAD:main
           fi
           echo "Published content commit: $(git rev-parse HEAD)"
@@ -62,5 +76,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds"
 
-      - name: Verify the public site matches the generated content
-        run: python tools/check_live_site.py --timeout 240
+      - name: Verify deployed website
+        run: |
+          python tools/check_live_site.py --timeout 240
+          python tools/check_blog.py --live --timeout 180
+
+      - name: Save public site preview for layout testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-preview
+          retention-days: 1
+          path: |
+            *.html
+            portfolio.css
+            styles.css
+            script.js
+            en/
+            projects/
+            blog/
+            admin/
+            assets/
