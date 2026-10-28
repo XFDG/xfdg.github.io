@@ -31,7 +31,10 @@ jobs:
       - name: Verify merged PRs and update reviewed source
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python .github/refresh-profile.py
+        run: |
+          python .github/refresh-profile.py
+          # Workflow changes are applied separately through the authorized connection.
+          git restore .github/workflows/build-bilingual-site.yml
       - name: Install build dependencies
         run: python -m pip install -r tools/blog-requirements.txt
       - name: Build and test both languages
@@ -76,9 +79,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || { echo 'Concurrent edit detected; refusing to overwrite'; exit 1; }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm .github/refresh-profile.py .github/workflows/refresh-public-profile.yml
-          git add tools/build_portfolio.py tools/build_anonymous_resume.py tools/blog-requirements.txt tools/check_portfolio.py tools/check_live_site.py .github/workflows/build-bilingual-site.yml content/portfolio_status.json assets/resume '*.html' en projects blog sitemap.xml
-          # .gitattributes marks generated PDFs as binary; text checks remain enabled.
+          git rm .github/refresh-profile.py
+          git add tools/build_portfolio.py tools/build_anonymous_resume.py tools/blog-requirements.txt tools/check_portfolio.py tools/check_live_site.py content/portfolio_status.json assets/resume '*.html' en projects blog sitemap.xml
           git diff --cached --check
           git commit -m 'Update public resume, anonymous downloads and merged-only upstream PRs'
           git push origin HEAD:main
@@ -92,6 +94,7 @@ jobs:
           python tools/check_live_site.py --timeout 240
           python tools/check_blog.py --live --timeout 180
       - name: Export review artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: public-profile-review
