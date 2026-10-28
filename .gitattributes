@@ -1,0 +1,2 @@
+# Generated resumes are binary documents, not text diffs.
+*.pdf binary
