@@ -39,9 +39,10 @@ jobs:
 
       - name: Generate and validate portfolio and blog
         run: |
-          python -m py_compile tools/build_portfolio.py tools/build_anonymous_resume.py tools/build_blog.py tools/check_portfolio.py tools/check_blog.py tools/check_live_site.py
+          python -m py_compile tools/build_portfolio.py tools/build_research.py tools/build_anonymous_resume.py tools/build_blog.py tools/check_portfolio.py tools/check_blog.py tools/check_live_site.py
           python tools/build_blog.py --test
           python tools/build_portfolio.py
+          python tools/build_research.py
           python tools/build_blog.py
           python tools/check_portfolio.py
           python tools/check_blog.py
@@ -56,6 +57,7 @@ jobs:
               return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths if '.git' not in p.parts}
           before = snapshot()
           subprocess.run(['python', 'tools/build_portfolio.py'], check=True)
+          subprocess.run(['python', 'tools/build_research.py'], check=True)
           subprocess.run(['python', 'tools/build_blog.py'], check=True)
           assert before == snapshot(), 'Site generation is not idempotent'
           print('PASS: repeat generation is byte-identical')
@@ -67,7 +69,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- '*.html' en projects blog sitemap.xml assets/resume
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish bilingual portfolio, resume downloads and Markdown blog'
+            git commit -m 'Publish bilingual portfolio, research, resume downloads and Markdown blog'
             git push origin HEAD:main
           fi
           echo "Published content commit: $(git rev-parse HEAD)"
@@ -81,6 +83,19 @@ jobs:
         run: |
           python tools/check_live_site.py --timeout 240
           python tools/check_blog.py --live --timeout 180
+          python - <<'PY'
+          import time
+          import urllib.request
+          from pathlib import Path
+          for path in ['research.html', 'en/research.html']:
+              url = 'https://xfdg.github.io/' + path + '?verify=' + str(time.time_ns())
+              with urllib.request.urlopen(url, timeout=30) as response:
+                  live = response.read().decode('utf-8')
+              expected = Path(path).read_text(encoding='utf-8')
+              assert live == expected, f'{path}: deployed content differs'
+              assert '2610.30949' in live and 'Haoran Feng' in live
+              print(f'PASS: {path} contains the published IQuest-Q1 technical report')
+          PY
 
       - name: Save public site preview for layout testing
         uses: actions/upload-artifact@v4
