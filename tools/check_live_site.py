@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE = 'https://xfdg.github.io/'
 PATHS = ('index.html', 'en/index.html', 'projects/iquest-q1.html',
          'en/projects/iquest-q1.html', 'opensource.html', 'en/opensource.html',
-         'resume.html', 'en/resume.html', 'portfolio.css', 'script.js')
+         'resume.html', 'en/resume.html', 'portfolio.css', 'script.js',
+         'assets/resume/anonymous-zh.pdf', 'assets/resume/anonymous-en.pdf')
 
 
 def verify(path: str) -> tuple[str, bool, str]:

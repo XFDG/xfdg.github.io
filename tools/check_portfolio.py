@@ -60,7 +60,7 @@ def main():
     data=json.loads((ROOT/'content/portfolio_status.json').read_text())
     flat=[(g['repo'],pr['number']) for g in data['groups'] for pr in g['prs']]
     if len(flat)!=len(set(flat)): errors.append('Duplicate PR count')
-    if ('kvcache-ai/Mooncake',3661) in flat: errors.append('Unmerged #3661 counted as merged')
+    if any(p.get('state')!='merged' or not p.get('merged_at') for g in data['groups'] for p in g['prs']): errors.append('Unverified or unmerged PR in snapshot')
     for language in ['', 'en/']:
         home=(ROOT/(language+'index.html')).read_text()
         if f'{len(flat)} PRs' not in home: errors.append(f'{language}: inconsistent homepage count')

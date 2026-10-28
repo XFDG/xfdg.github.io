@@ -122,9 +122,9 @@ DETAILS = [
          summary=('为小 M decode 接入三级后端，兼顾选核、CUDA Graph 和逐位一致性。','Three backends for small-M decode with CUDA Graph preflight and bitwise checks.'),evidence=('Router 耗时 −73.39%','Router latency −73.39%'),
          problem=('小 M decode 中存在无效 GEMM 计算；同时，选核与 CUDA Graph 路径必须满足确定性约束。','Small-M decode wasted GEMM work while kernel selection and CUDA Graph execution had to satisfy determinism constraints.'),
          work=('在 vLLM 接入 DeepGEMM / Triton Full-K / persistent 三级后端，负责选核、Graph preflight、cache / fallback 与 workspace 管理，并开展 kernel 和模型场景回归。','Integrated DeepGEMM, Triton Full-K and persistent backends into vLLM. Implemented dispatch, Graph preflight, cache/fallback and workspace management, then validated kernel and model scenarios.'),
-         results=[('48 层 Router 测量工作负载的中位耗时','Median latency in the measured 48-layer router workload','−73.39%'),('Kernel 逐位一致','Bitwise-matching kernel cases','135 / 135'),('模型场景逐位一致','Bitwise-matching model scenarios','20 / 20'),('Prefix-cache hit 下整请求处理性能','Full-request performance with prefix-cache hits','TP1 +3.81% · TP2 +4.36%')],
+         results=[('代表 Router 测量工作负载的中位耗时','Median latency in the representative router workload','−73.39%'),('Kernel 逐位一致','Bitwise-matching kernel cases','135 / 135'),('模型场景逐位一致','Bitwise-matching model scenarios','20 / 20'),('async OE + prefix-cache hit 下整请求吞吐','Full-request throughput with async OE and prefix-cache hits','TP1 +3.81% · TP2 +4.36%')],
          delivery=('覆盖 Kernel dispatch 到推理 Runtime 的完整接入。','Delivered the integration from kernel dispatch to inference runtime.'),
-         boundary=('48 层是此项优化的测量工作负载，并非对已发布 IQuest-Q1 层数的描述。Router 局部耗时降幅不等同于整请求收益；后者仅适用于已测 prefix-cache hit 配置。','The 48 layers describe this measurement workload, not the released IQuest-Q1 architecture. The router-only reduction is not an end-to-end gain; request-level results apply to the tested prefix-cache-hit configurations.')),
+         boundary=('Router 局部耗时降幅不等同于整请求收益；后者仅适用于已测 prefix-cache hit 配置。','The router-only reduction is not an end-to-end gain; request-level results apply to the tested prefix-cache-hit configurations.')),
     dict(slug='oe-async',cat='inference',title=('OE：异步 GPU 状态算子','OE: asynchronous GPU state operators'),
          summary=('将历史 token 状态留在 GPU，以 Triton fused-hash 减少同步与回传。','Keep token history on the GPU and reduce synchronization with Triton fused hashing.'),evidence=('TP1 吞吐 +4.99%','TP1 throughput +4.99%'),
          problem=('历史 token 构造中的同步与 CPU 往返增加 decode 开销；异步化还需要保证请求恢复、slot 复用等跨 step 状态正确。','Token-history construction added synchronization and CPU round trips. Asynchronous execution also required correct state across recovery, slot reuse and decode steps.'),
@@ -136,9 +136,9 @@ DETAILS = [
          summary=('打通 vLLM 路由采集、传输与 Megatron 回放，扩展到 128 卡研发验证。','Connect vLLM route capture to Megatron replay, with development validation at 128 GPUs.'),evidence=('路由不一致率 → 0','Route mismatch → 0'),
          problem=('vLLM rollout 与 Megatron 训练侧的自然路由存在偏差，需要对齐路由数据、response mask 和概率漂移指标。','Natural routing differed between vLLM rollout and Megatron training. Route data, response masks and probability-drift metrics needed a shared contract.'),
          work=('完成 route 采集、传输与回放链路，建立 response-mask 对齐及 mismatch / fτ² / KL 监控；随后将 rollout 系统扩展到更大模型与多卡规模。','Implemented route capture, transport and replay, with response-mask alignment and mismatch / fτ² / KL monitoring. Extended the rollout system to larger development models and GPU counts.'),
-         results=[('8×H200 · Qwen3-30B-A3B · 20-step 路由不一致率','8×H200 · Qwen3-30B-A3B · 20-step route mismatch','17–19% → 0'),('同一对照中的概率漂移指标','Probability-drift metrics in that control experiment','fτ² ↓36–145× · KL ↓4–7×'),('独立的大规模研发验证','Separate large-scale development validation','128 GPUs · 300B-class · 200-step rollout')],
+         results=[('8×H200 · Qwen3-30B-A3B · 20-step 路由不一致率','8×H200 · Qwen3-30B-A3B · 20-step route mismatch','17–19% → 0'),('同一对照中的概率漂移指标','Probability-drift metrics in that control experiment','fτ² ↓36–145× · KL ↓4–7×'),('独立的大规模研发验证','Separate large-scale development validation','128 GPUs · 200-step rollout')],
          delivery=('打通 RL 训练与 rollout 的数据和验证闭环。','Connected RL training and rollout through a tested data contract.'),
-         boundary=('20-step 小模型指标与 128 卡、300B 级模型的 200-step rollout 是两项不同验证。路由一致不等于最终 reward、收敛或模型质量提升。','The 20-step smaller-model comparison and the 128-GPU, 300B-class 200-step rollout are separate validations. Route consistency alone does not establish improved reward, convergence or model quality.')),
+         boundary=('20-step 小模型指标与 128 卡研发配置的 200-step rollout 是两项不同验证。路由一致不等于最终 reward、收敛或模型质量提升。','The 20-step smaller-model comparison and the 128-GPU 200-step rollout are separate validations. Route consistency alone does not establish improved reward, convergence or model quality.')),
     dict(slug='flashinfer-ftz',cat='rl',title=('FlashInfer：CUDA Graph hang 排障','FlashInfer: diagnosing a CUDA Graph hang'),
          summary=('两卡最小复现定位 Lamport sentinel 的 FTZ 误判，回移上游修复。','A two-GPU reproducer isolated FTZ-sensitive sentinel handling; an upstream fix was backported.'),evidence=('模型级 Graph 回归','Model-level Graph regression'),
          problem=('H200、TP=2 的 rollout 在 CUDA Graph 路径卡死，外层表现为 hang 或 RPC timeout。','H200 TP=2 rollout hung in a CUDA Graph path, surfacing as a hang or RPC timeout.'),
@@ -178,8 +178,13 @@ def pr_url(group: dict, item: dict) -> str:
     return f'https://github.com/{group["repo"]}/pull/{item["number"]}'
 
 
-def pr_table(group: dict, lang: str) -> str:
-    return table(['PR',tx(('已合入内容','Merged change'),lang),tx(('状态','Status'),lang)], [[link(pr_url(group,p),f'#{p["number"]} ↗'),esc(p[lang]),'Merged'] for p in group['prs']], 'oss-detail-table')
+def pr_table(g: dict, lang: str) -> str:
+    rows=[]
+    for pr in g['prs']:
+        assert pr['state']=='merged' and pr.get('merged_at')
+        rows.append([link(pr['url'], '#'+str(pr['number'])+' ↗'), esc(pr[lang]), esc(pr['merged_at'][:10])])
+    return table([tx(('PR','PR'),lang),tx(('贡献','Contribution'),lang),tx(('合入日期（UTC）','Merged (UTC)'),lang)],rows,'oss-table')
+
 
 
 def oss_summary(lang: str) -> str:
@@ -187,7 +192,7 @@ def oss_summary(lang: str) -> str:
     for g in GROUPS:
         category = tx(('实习期间','During internship'),lang) if g['category']=='internship' else tx(('社区贡献','Community'),lang)
         rows.append([ilink(g['page'],g['name'],lang),category,str(len(g['prs']))])
-    return table([tx(('项目','Project'),lang),tx(('来源','Context'),lang),tx(('已合入','Merged'),lang)],rows,'oss-table') + f'<p class="section-note">{tx((f"{TOTAL} 个已合入 PR，覆盖 5 个 AI Infra 项目；含 {INTERNSHIP} 个摩尔线程实习 PR。状态核验：{SNAPSHOT}。",f"{TOTAL} merged PRs across five AI infrastructure projects, including {INTERNSHIP} from the Moore Threads internship. Verified {SNAPSHOT}."),lang)}</p>'
+    return table([tx(('项目','Project'),lang),tx(('来源','Context'),lang),tx(('已合入','Merged'),lang)],rows,'oss-table') + f'<p class="section-note">{tx((f"{TOTAL} 个已合入 PR，覆盖 {len(GROUPS)} 个 AI Infra 项目；含 {INTERNSHIP} 个摩尔线程实习 PR。状态核验：{SNAPSHOT}。",f"{TOTAL} merged PRs across {len(GROUPS)} AI infrastructure projects, including {INTERNSHIP} from the Moore Threads internship. Verified {SNAPSHOT}."),lang)}</p>'
 
 
 def education(lang: str) -> str:
@@ -215,7 +220,7 @@ def home(lang: str) -> None:
 def details(lang: str) -> None:
     for d in DETAILS:
         title, lead = tx(d['title'],lang),tx(d['summary'],lang)
-        own = tx(('来源：本人 2026 年 9 月简历与工程记录摘要；以下为所述实验条件下的结果。','Source: the author’s September 2026 resume and engineering summary; results apply to the stated test conditions.'),lang)
+        own = tx(('来源：本人最新简历与工程记录摘要；以下为所述实验条件下的结果。','Source: the author’s latest supplied resume and engineering summary; results apply to the stated test conditions.'),lang)
         body = head(title,esc(lead),lang,d['cat']+' / Engineering', '<div class="quick-links">'+ilink('projects.html',tx(('项目索引','Project index'),lang),lang)+(ilink('projects/iquest-q1.html','IQuest-Q1',lang) if d['cat'] in ['training','inference','rl'] else '')+'</div>')
         body += section(tx(('问题与职责','Problem & contribution'),lang),para(esc(tx(d['problem'],lang)))+para(esc(tx(d['work'],lang))),reading=True)
         results = [[esc(zh if lang=='zh' else en),esc(value)] for zh,en,value in d['results']]
@@ -260,7 +265,7 @@ def experience_body(lang: str, resume: bool = False) -> str:
     summaries=[
         ('fa3-deterministic-swa',('FA3 确定性 SWA backward','FA3 deterministic SWA backward'),('定位 dQ semaphore 依赖链，实现 contributor-relative ticket 并对齐 reverse scheduler；代表 packed shape 完整 backward 6.755 → 1.699 ms（3.98×），3,601 项回归与 1,000 次逐位确定性测试，交付 wheel。','Isolated dQ semaphore dependencies and aligned contributor-relative tickets with the reverse scheduler. Full backward on a representative packed shape: 6.755 → 1.699 ms (3.98×); 3,601 regressions and 1,000 bitwise checks; wheel delivered.')),
         ('fc1-communication',('FC1 计算与通信','FC1 compute–communication'),('4×H200 双 stream 代理，联合控制 NCCL CTA / DeepGEMM SM budget；121 组粗扫、89 组细扫与复验；AllGatherV 代理联合耗时 −12.80%，固定通信设置下控核贡献 7.58%。','Four-H200 dual-stream proxy with NCCL CTA / DeepGEMM SM budgeting; 121 coarse and 89 fine configurations plus rechecks. AllGatherV proxy joint latency −12.80%; isolated compute-budget contribution 7.58%.')),
-        ('deterministic-router-gemm',('确定性 Router GEMM','Deterministic router GEMM'),('接入三级后端、Graph preflight、cache / fallback 与 workspace 管理；48 层测试工作负载中位耗时 −73.39%，135/135 kernel 与 20/20 模型场景逐位一致；prefix-cache hit 下 TP1 / TP2 整请求处理性能 +3.81% / +4.36%。','Three backends, Graph preflight, cache/fallback and workspace management. Median latency −73.39% in a 48-layer test workload; 135/135 kernel and 20/20 model cases bitwise-matching; full-request performance +3.81% / +4.36% at TP1 / TP2 with prefix-cache hits.')),
+        ('deterministic-router-gemm',('确定性 Router GEMM','Deterministic router GEMM'),('接入三级后端、Graph preflight、cache / fallback 与 workspace 管理；代表 Router 测试工作负载中位耗时 −73.39%，135/135 kernel 与 20/20 模型场景逐位一致；async OE + prefix-cache hit 下 TP1 / TP2 整请求吞吐 +3.81% / +4.36%。','Three backends, Graph preflight, cache/fallback and workspace management. Median latency −73.39% in a representative router test workload; 135/135 kernel and 20/20 model cases bitwise-matching; full-request performance +3.81% / +4.36% at TP1 / TP2 with prefix-cache hits.')),
         ('oe-async',('OE 异步状态','OE asynchronous state'),('GPU token history 与 Triton fused-hash；TP1 28/28 case，吞吐 +4.99%；TP2 / TP4 安全路径各 84/84、0 mismatch，decode 吞吐 +4.6% / +3.0%。','GPU token history and Triton fused hashing. TP1: 28/28 cases, throughput +4.99%. TP2 / TP4 safe paths: 84/84 each, zero mismatch, decode throughput +4.6% / +3.0%.')),
         ('router-replay',('R3 Router Replay','R3 Router Replay'),('打通 vLLM / Megatron 路由采集、传输、回放与监控。8×H200、Qwen3-30B-A3B、20-step 对照：mismatch 17–19% → 0，fτ² / KL 降低 36–145× / 4–7×；另完成 128 卡、300B 级研发模型的 200-step rollout。','Connected vLLM / Megatron route capture, transport, replay and monitoring. Eight-H200, Qwen3-30B-A3B, 20-step control: mismatch 17–19% → 0, fτ² / KL lower by 36–145× / 4–7×. Separately completed a 200-step development rollout for a 300B-class model on 128 GPUs.')),
         ('flashinfer-ftz',('CUDA Graph 稳定性','CUDA Graph stability'),('两卡最小复现定位 Lamport sentinel 的 FTZ 误判，回移上游位级判断修复；模型级重复 Graph replay 未再观察到 hang / timeout。','A two-GPU reproducer isolated FTZ-sensitive Lamport sentinel handling. Backported the upstream bitwise fix; repeated model-level Graph replay showed no further hang or timeout.'))]
@@ -301,6 +306,7 @@ def research_page(lang: str) -> None:
 def resume(lang: str) -> None:
     title=tx(('冯浩然','Haoran Feng'),lang)
     contacts='<div class="quick-links">'+link('mailto:'+EMAIL,EMAIL,False)+link(GITHUB,'GitHub: XFDG')+ilink('index.html',tx(('个人网站','Website'),lang),lang)+'</div>'
+    contacts += '<div class="quick-links no-print">'+link('/assets/resume/anonymous-zh.pdf',tx(('匿名简历 PDF · 中文','Anonymous PDF · Chinese'),lang),False)+link('/assets/resume/anonymous-en.pdf',tx(('匿名简历 PDF · English','Anonymous PDF · English'),lang),False)+'</div>'
     body=head(title,tx(('大模型系统与 GPU 性能工程','LLM systems & GPU performance engineering'),lang),lang,'Résumé',contacts+'<p class="no-print"><button class="print-button" type="button" onclick="window.print()">'+tx(('打印 / 保存 PDF','Print / save PDF'),lang)+'</button></p>')
     body+=section(tx(('教育经历','Education'),lang),education(lang)+f'<p class="section-note">{tx(("山东大学学业奖学金（前 20%）、特长奖学金（竞赛创新）。","Shandong University Academic Scholarship (top 20%) and Competition & Innovation Scholarship."),lang)}</p>')
     body+=experience_body(lang,True)
@@ -315,25 +321,25 @@ def resume(lang: str) -> None:
 
 def opensource(lang: str) -> None:
     title=tx(('开源贡献','Open source'),lang)
-    lead=tx((f'{TOTAL} 个已合入 PR，覆盖 5 个 AI Infra 项目。社区贡献与实习期间的公开产出分别标注。',f'{TOTAL} merged PRs across five AI infrastructure projects, with community and internship contributions identified separately.'),lang)
-    body=head(title,lead,lang,'Upstream contributions',f'<p class="section-note">{tx(("状态核验","Verified"),lang)}: {SNAPSHOT}</p>')
+    lead=tx((f'{TOTAL} 个已合入 PR，覆盖 {len(GROUPS)} 个 AI Infra 项目。',f'{TOTAL} merged PRs across {len(GROUPS)} AI infrastructure projects.'),lang)
+    body=head(title,lead,lang,'Merged upstream contributions',f'<p class="section-note">{tx(("核验日期","Verified"),lang)}: {SNAPSHOT}</p>')
     body+=section(tx(('概览','Overview'),lang),oss_summary(lang))
-    ids=['mooncake','musa','ray','flashinfer','mirage']
-    for ident,g in zip(ids,GROUPS):
-        label=tx(('实习期间 · 已合入','During internship · merged'),lang) if g['category']=='internship' else tx(('社区贡献 · 已合入','Community · merged'),lang)
-        body+=section(g['name'],pr_table(g,lang),f'<span>{label} · {len(g["prs"])}</span>',ident)
-    note=tx((f'统计包含 {COMMUNITY} 个社区 PR 与 {INTERNSHIP} 个实习 PR，均为本人向相应上游提交且 GitHub 标记为 merged 的记录。个人 fork 内合并、课程协作、Git 测试及其他文档协作未纳入本页的 AI Infra 统计。',f'This scoped total includes {COMMUNITY} community PRs and {INTERNSHIP} internship PRs authored by XFDG and marked merged upstream. Personal-fork merges, course collaboration, Git practice and other documentation collaboration are excluded from this AI infrastructure summary.'),lang)
-    body+=section(tx(('统计口径','Counting scope'),lang),para(note)+para(link('https://github.com/kvcache-ai/Mooncake/pull/3661','Mooncake #3661 ↗')+' · '+tx(('仍为 Open；有界队列与失败传播工作不计入已合入的 7 个 Mooncake PR。','Still open; bounded-queue and failure-propagation work is not included in the seven merged Mooncake PRs.'),lang)),reading=True)
+    ids={'Mooncake':'mooncake','TensorFlow MUSA':'musa','Ray':'ray','FlashInfer':'flashinfer','Mirage':'mirage','vLLM':'vllm','DeepSpeed':'deepspeed'}
+    for g in GROUPS:
+        label=tx(('实习产出','Internship'),lang) if g['category']=='internship' else tx(('社区贡献','Community'),lang)
+        body+=section(g['name'],pr_table(g,lang),f'<span>{label} · {len(g["prs"])} merged</span>',ids[g['name']])
+    note=tx((f'{COMMUNITY} 个社区贡献与 {INTERNSHIP} 个实习产出；仅统计本人提交且上游已合入的 PR。',f'{COMMUNITY} community contributions and {INTERNSHIP} internship outputs; only authored, merged upstream PRs are counted.'),lang)
+    body+=section(tx(('统计口径','Scope'),lang),para(note),reading=True)
     write_page('opensource.html',title,lead,body,lang,'opensource')
-    g=GROUPS[0]
-    body=head('Mooncake',tx(('分布式 KV Cache 的存储、RDMA 与正确性修复。','Storage, RDMA and correctness fixes for a distributed KV cache.'),lang),lang,'Open source',f'<p class="section-note">7 merged · {SNAPSHOT}</p>')
+    g=next(g for g in GROUPS if g['name']=='Mooncake')
+    body=head('Mooncake',tx(('分布式 KV Cache 的存储、RDMA 与正确性修复。','Storage, RDMA and correctness fixes for a distributed KV cache.'),lang),lang,'Open source',f'<p class="section-note">{len(g["prs"])} merged · {SNAPSHOT}</p>')
     body+=section(tx(('已合入上游','Merged upstream'),lang),pr_table(g,lang))
-    body+=section(tx(('持续跟进','Ongoing work'),lang),para(link('https://github.com/kvcache-ai/Mooncake/pull/3661','#3661 ↗')+' · '+esc(STATUS['tracked_open'][0][lang]))+f'<p class="boundary-note">{tx(("#3662 最终合入的是本地 MEMORY 优先级与副本排序修复，不是 SSD session 功能。#4016 是聚焦 Store 的 macOS 构建修复，不代表所有 RDMA / Transfer Engine 路径已在 macOS 上可用。","The final #3662 scope is local MEMORY preference and replica ordering, not SSD session functionality. #4016 is a focused macOS Store build fix, not macOS support for all RDMA / Transfer Engine paths."),lang)}</p>',reading=True)
     write_page('projects/mooncake-contributions.html','Mooncake',tx(('Mooncake 上游贡献','Mooncake upstream contributions'),lang),body,lang)
-    g=GROUPS[-1]
+    g=next(g for g in GROUPS if g['name']=='Mirage')
     body=head('Mirage',tx(('Qwen3 示例中的 padding / Argmax 正确性修复。','Padding / Argmax correctness in Qwen3 demos.'),lang),lang,'Open source')+section(tx(('已合入记录','Merged record'),lang),pr_table(g,lang))
-    body+=section(tx(('修改范围','Scope'),lang),para(tx(('PR #755 调整了 9 个示例脚本中 lm_head 超出真实词表部分的初始化，由 0 改为 −1e4。修改范围为示例脚本，不将其描述为通用 Argmax kernel 重写。','PR #755 changes the initialization of lm_head rows beyond the true vocabulary from 0 to −1e4 in nine demo scripts. The change is limited to demo scripts, not a rewrite of the general Argmax kernel.'),lang)),reading=True)
+    body+=section(tx(('修改范围','Scope'),lang),para(tx(('PR #755 调整 9 个示例脚本中的 lm_head padding 初始化，处理 padding 参与 Argmax 的异常 token 问题。','PR #755 changes lm_head padding initialization in nine demo scripts to address invalid tokens from padded Argmax candidates.'),lang)),reading=True)
     write_page('projects/mirage-contribution.html','Mirage',tx(('Mirage 上游贡献','Mirage upstream contribution'),lang),body,lang)
+
 
 
 def supporting(lang: str) -> None:
@@ -344,7 +350,7 @@ def supporting(lang: str) -> None:
     body+=section(tx(('研究','Research'),lang),research_blurb(lang))
     write_page('writing.html',tx(('文章','Writing'),lang),tx(('技术文章与工程记录','Technical writing and engineering notes'),lang),body,lang,'writing')
     body=head(tx(('现在与下一步','Now & next'),lang),tx(('把优化沉淀为可复现的工程结果。','Turn optimization work into reproducible engineering results.'),lang),lang,'Roadmap')
-    body+=section('Now',bullets([tx(('IQuest-Q1 训练、推理与 RL 基础设施：整理已经验证的优化与边界。','IQuest-Q1 infrastructure: document validated training, inference and RL work with its scope.'),lang),tx(('维护上游贡献与回归测试；单独跟进尚未合入的 PR。','Maintain upstream contributions and regression tests; track open PRs separately.'),lang),tx(('具备 H200 / B200 开发环境，推进跨代适配与确定性验证。','Use available H200 / B200 development environments for cross-generation compatibility and determinism validation.'),lang)]))
+    body+=section('Now',bullets([tx(('IQuest-Q1 训练、推理与 RL 基础设施：整理已经验证的优化与边界。','IQuest-Q1 infrastructure: document validated training, inference and RL work with its scope.'),lang),tx(('维护已合入的上游贡献与回归测试。','Maintain merged upstream contributions and regression tests.'),lang),tx(('具备 H200 / B200 开发环境，推进跨代适配与确定性验证。','Use available H200 / B200 development environments for cross-generation compatibility and determinism validation.'),lang)]))
     body+=section('Next',bullets([tx(('补充可公开的 workload、baseline 与复现实验配置，而不是只展示加速比。','Add public workloads, baselines and reproducible configurations, not just speedup figures.'),lang),tx(('在统一实验条件下比较 Hopper / Blackwell；未形成对照的数据不作跨代性能结论。','Compare Hopper and Blackwell under controlled conditions; do not infer cross-generation gains from unmatched runs.'),lang),tx(('继续量化 Runtime、CoT 蒸馏评测与技术写作。','Continue quantized runtime work, CoT distillation evaluation and technical writing.'),lang)]))
     write_page('roadmap.html','Now & next',tx(('当前工作与项目规划','Current work and plans'),lang),body,lang,'roadmap')
     body=head(tx(('联系','Contact'),lang),tx(('欢迎交流大模型系统、GPU 算子与工程实践。','Get in touch about LLM systems, GPU kernels and engineering.'),lang),lang,'Contact')
@@ -356,7 +362,7 @@ def sitemap() -> None:
     entries=[]
     for f in sorted(ROOT.rglob('*.html')):
         rel=f.relative_to(ROOT).as_posix()
-        if rel.startswith(('.git/','tools/')) or f.name=='404.html':
+        if rel.startswith(('.git/','tools/')) or f.name in ('404.html','anonymous-resume.html'):
             continue
         path=rel[3:] if rel.startswith('en/') else rel
         lang='en' if rel.startswith('en/') else 'zh'
@@ -374,6 +380,8 @@ def main() -> None:
     for lang in ['zh','en']:
         home(lang); projects(lang); iquest(lang); details(lang)
         experiences(lang); research_page(lang); resume(lang); opensource(lang); supporting(lang)
+    from build_anonymous_resume import main as build_anonymous
+    build_anonymous()
     sitemap()
     print(f'Built {len(BUILT)} bilingual pages; {TOTAL} verified, scoped upstream PRs.')
 
