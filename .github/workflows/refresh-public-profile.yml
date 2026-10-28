@@ -78,6 +78,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git rm .github/refresh-profile.py .github/workflows/refresh-public-profile.yml
           git add tools/build_portfolio.py tools/build_anonymous_resume.py tools/blog-requirements.txt tools/check_portfolio.py tools/check_live_site.py .github/workflows/build-bilingual-site.yml content/portfolio_status.json assets/resume '*.html' en projects blog sitemap.xml
+          # .gitattributes marks generated PDFs as binary; text checks remain enabled.
           git diff --cached --check
           git commit -m 'Update public resume, anonymous downloads and merged-only upstream PRs'
           git push origin HEAD:main
